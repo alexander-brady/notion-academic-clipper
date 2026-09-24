@@ -22,39 +22,43 @@ BibTeX     @misc{vaswani2017attention, … }
 ### 1. Connect Notion
 
 Notion has no public "sign in with Notion" flow for an extension without a backend
-server, so this uses an **internal integration token**, which is the standard approach
-for a personal tool.
+server, so this uses a Notion **API key**, which is the standard approach for a personal
+tool.
 
-1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New integration**
-   → type **Internal**.
-2. Copy the **Internal Integration Secret** (starts with `ntn_` or `secret_`).
+1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New connection**
+   → type **API key**.
+2. Copy the **API key** (starts with `ntn_` or `secret_`).
 3. Paste it into the extension's setup page and click **Connect**.
 
-The token is kept in `chrome.storage.local` on this machine only. It is never synced
+The key is kept in `chrome.storage.local` on this machine only. It is never synced
 and is only ever sent to `api.notion.com`.
 
-### 2. Share a database with the integration
+### 2. Share a database with the connection
 
-A fresh Notion integration can see nothing until you grant it access. Open the database
-you want to clip into → **•••** (top right) → **Connections** → **Connect to** → pick your
-integration. Repeat for every database you want to appear in the dropdown.
+A new connection can see nothing until you grant it access. Open the database you want to
+clip into → **•••** at the top right _of the page_ (not the one on the database itself) →
+**Connections** → **Connect to** → pick your connection. Repeat for every database you want
+to appear in the dropdown.
 
 ## Suggested database schema
 
 Only a **title** property is required; everything else is written if a matching property
 exists and skipped if it doesn't.
 
-| Property     | Type                | Receives                         |
-| ------------ | ------------------- | -------------------------------- |
-| Title        | Title               | Paper title                      |
-| URL          | URL                 | Page address                     |
-| DOI          | Text                | Bare DOI (`10.1038/nature12373`) |
-| BibTeX       | Text                | Full entry                       |
-| Authors      | Multi-select / Text | Author list                      |
-| Year         | Number              | Publication year                 |
-| Journal      | Select / Text       | Journal or conference            |
-| Cite key     | Text                | `vaswani2017attention`           |
-| Date clipped | Date                | When you saved it                |
+| Property        | Type                          | Receives                                 |
+| --------------- | ----------------------------- | ---------------------------------------- |
+| Title           | Title                         | Paper title (the only required property) |
+| URL             | URL / Text                    | Page address                             |
+| DOI             | Text / URL / Select           | Bare DOI (`10.1038/nature12373`)         |
+| BibTeX          | Text                          | Full entry                               |
+| Authors         | Multi-select / Text / Select  | Author list                              |
+| Year            | Number / Select / Text / Date | Publication year                         |
+| Journal / Venue | Select / Multi-select / Text  | Journal or conference                    |
+| Abstract        | Text                          | Abstract, where the page publishes one   |
+| PDF link        | URL / Files & media / Text    | Direct link to the PDF                   |
+| Entry type      | Select / Multi-select / Text  | `article`, `inproceedings`, ...          |
+| Date clipped    | Date                          | When you saved it                        |
+| Cite key        | Text / Select                 | `vaswani2017attention`                   |
 
 Properties are matched to fields by name and type. Anything matched wrongly can be
 re-pointed under **Field mapping** in the popup, and the choice is remembered per

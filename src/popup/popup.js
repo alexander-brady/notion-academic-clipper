@@ -121,7 +121,7 @@ async function boot() {
   if (!state.databases.length) {
     setStatus('No databases shared', 'warn');
     notice(
-      'This integration cannot see any database yet. In Notion, open the database → ••• → Connections → add your integration.',
+      'This connection cannot see any database yet. In Notion, open the database → ••• → Connections → add your connection.',
       'warn'
     );
   }

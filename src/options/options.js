@@ -39,7 +39,7 @@ $('connect').addEventListener('click', async () => {
   const el = $('token-status');
 
   if (!token) {
-    setStatus(el, 'Paste your integration secret first.', 'error');
+    setStatus(el, 'Paste your API key first.', 'error');
     return;
   }
 
@@ -48,7 +48,7 @@ $('connect').addEventListener('click', async () => {
   try {
     const { self } = await send('saveToken', { token });
     const where = self && self.workspace ? ` in ${self.workspace}` : '';
-    setStatus(el, `Connected as ${self ? self.name : 'integration'}${where}.`, 'ok');
+    setStatus(el, `Connected as ${self ? self.name : 'this connection'}${where}.`, 'ok');
     $('token').value = '';
     $('token').placeholder = '•••••••• saved';
     await listDatabases();
@@ -87,7 +87,7 @@ async function listDatabases() {
     const { databases } = await send('refreshDatabases', {});
 
     if (!databases.length) {
-      list.replaceChildren(listRow('No databases shared with this integration yet.', true));
+      list.replaceChildren(listRow('No databases shared with this connection yet.', true));
       return;
     }
 
@@ -150,7 +150,11 @@ for (const id of [...Object.values(PREF_INPUTS), 'pref-icon']) {
   if (init.connected) {
     $('token').placeholder = '•••••••• saved';
     const where = init.self && init.self.workspace ? ` in ${init.self.workspace}` : '';
-    setStatus($('token-status'), `Connected as ${init.self ? init.self.name : 'integration'}${where}.`, 'ok');
+    setStatus(
+      $('token-status'),
+      `Connected as ${init.self ? init.self.name : 'this connection'}${where}.`,
+      'ok'
+    );
     await listDatabases();
   }
 })();

@@ -20,12 +20,12 @@
             <a class="link" href="https://www.notion.so/my-integrations" target="_blank" rel="noreferrer">
               notion.so/my-integrations
             </a>
-            and create a <strong>New integration</strong> of type <em>Internal</em>.
+            and create a <strong>New connection</strong> of type <em>API key</em>.
           </li>
           <li>Under <strong>Capabilities</strong>, keep read and insert content enabled.</li>
           <li>
-            Copy the <strong>Internal Integration Secret</strong> (it starts with
-            <code class="code">ntn_</code> or <code class="code">secret_</code>) and paste it below.
+            Copy the <strong>API key</strong> (it starts with <code class="code">ntn_</code> or
+            <code class="code">secret_</code>) and paste it below.
           </li>
         </ol>
 
@@ -49,11 +49,12 @@
       </section>
 
       <section class="card">
-        <h2 class="card-title">2. Share a database with the integration</h2>
+        <h2 class="card-title">2. Share a database with the connection</h2>
         <p class="mb-3">
-          Notion integrations start with access to nothing. Open the database you want to clip into, click
-          <strong>•••</strong> in the top right → <strong>Connections</strong> → <strong>Connect to</strong> →
-          pick your integration. Repeat for each database you want available.
+          A new connection starts with access to nothing. Open the database you want to clip into, click
+          <strong>•••</strong> in the top right <em>of the page</em> — not the one on the database itself —
+          then <strong>Connections</strong> → <strong>Connect to</strong> → pick your connection. Repeat for
+          each database you want available.
         </p>
         <button id="refresh" class="btn btn-ghost" type="button">Check visible databases</button>
         <ul id="db-list" class="mt-3"></ul>
@@ -62,8 +63,10 @@
       <section class="card">
         <h2 class="card-title">3. Database properties</h2>
         <p class="mb-3">
-          Fields are matched to your database properties by name and type, and you can override the mapping in
-          the popup. A database gets the most out of the clipper with properties like these:
+          This is everything the clipper can write, and it is the same list the popup shows under
+          <strong>Field mapping</strong>. Properties are matched by name and type, so close names work too
+          (<code class="code">Venue</code> for Journal, <code class="code">Added</code> for Date clipped); the
+          popup lets you re-point any of them.
         </p>
         <table class="mb-3 w-full border-collapse text-[13px]">
           <thead>
@@ -74,55 +77,74 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
+            <tr data-field="title">
               <td class="cell font-medium">Title</td>
               <td class="cell">Title</td>
-              <td class="cell">Paper title</td>
+              <td class="cell">The paper title — the only property that is required</td>
             </tr>
-            <tr>
+            <tr data-field="url">
               <td class="cell font-medium">URL</td>
-              <td class="cell">URL</td>
+              <td class="cell">URL or Text</td>
               <td class="cell">Page address</td>
             </tr>
-            <tr>
+            <tr data-field="doi">
               <td class="cell font-medium">DOI</td>
-              <td class="cell">Text</td>
+              <td class="cell">Text, URL or Select</td>
               <td class="cell">Bare DOI, e.g. 10.1038/nature12373</td>
             </tr>
-            <tr>
+            <tr data-field="bibtex">
               <td class="cell font-medium">BibTeX</td>
               <td class="cell">Text</td>
-              <td class="cell">Full entry</td>
+              <td class="cell">The full entry</td>
             </tr>
-            <tr>
+            <tr data-field="authors">
               <td class="cell font-medium">Authors</td>
-              <td class="cell">Multi-select or Text</td>
+              <td class="cell">Multi-select, Text or Select</td>
               <td class="cell">Author list</td>
             </tr>
-            <tr>
+            <tr data-field="year">
               <td class="cell font-medium">Year</td>
-              <td class="cell">Number</td>
+              <td class="cell">Number, Select, Text or Date</td>
               <td class="cell">Publication year</td>
             </tr>
-            <tr>
-              <td class="cell font-medium">Journal</td>
-              <td class="cell">Select or Text</td>
-              <td class="cell">Journal / conference</td>
+            <tr data-field="journal">
+              <td class="cell font-medium">Journal / Venue</td>
+              <td class="cell">Select, Multi-select or Text</td>
+              <td class="cell">Journal or conference</td>
             </tr>
-            <tr>
-              <td class="cell font-medium">Cite key</td>
+            <tr data-field="abstract">
+              <td class="cell font-medium">Abstract</td>
               <td class="cell">Text</td>
-              <td class="cell"><code class="code">doe2023attention</code></td>
+              <td class="cell">Abstract, where the page publishes one</td>
             </tr>
-            <tr>
+            <tr data-field="pdf">
+              <td class="cell font-medium">PDF link</td>
+              <td class="cell">URL, Files &amp; media or Text</td>
+              <td class="cell">Direct link to the PDF</td>
+            </tr>
+            <tr data-field="entryType">
+              <td class="cell font-medium">Entry type</td>
+              <td class="cell">Select, Multi-select or Text</td>
+              <td class="cell">
+                <code class="code">article</code>, <code class="code">inproceedings</code>, …
+              </td>
+            </tr>
+            <tr data-field="clippedAt">
               <td class="cell font-medium">Date clipped</td>
               <td class="cell">Date</td>
               <td class="cell">When you saved it</td>
             </tr>
+            <tr data-field="citeKey">
+              <td class="cell font-medium">Cite key</td>
+              <td class="cell">Text or Select</td>
+              <td class="cell"><code class="code">kucsko2013nanometre</code></td>
+            </tr>
           </tbody>
         </table>
         <p class="text-muted text-[12.5px]">
-          Only the title property is required. Anything missing is simply skipped.
+          Only the title property is required — a database with nothing else still works, and every property
+          you do not have is skipped. Abstract and BibTeX can also go in the page body instead; see
+          Preferences below.
         </p>
       </section>
 

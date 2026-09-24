@@ -49,9 +49,9 @@ async function request(token, path, { method = 'GET', body } = {}) {
 }
 
 function friendlyError(status, code, message) {
-  if (status === 401) return 'Notion rejected the token. Re-copy the integration secret in options.';
+  if (status === 401) return 'Notion rejected the token. Re-copy the API key in options.';
   if (code === 'object_not_found' || status === 404) {
-    return 'Notion cannot see that database. Open it in Notion → ••• → Connections → add your integration.';
+    return 'Notion cannot see that database. Open it in Notion → ••• → Connections → add your connection.';
   }
   if (code === 'validation_error') return `Notion rejected the data: ${message || 'validation error'}`;
   if (status === 429) return 'Rate limited by Notion. Wait a moment and try again.';
@@ -59,7 +59,7 @@ function friendlyError(status, code, message) {
   return message || `Notion request failed (HTTP ${status}).`;
 }
 
-/** Databases the integration has been granted access to. */
+/** Databases the connection has been granted access to. */
 export async function searchDatabases(token, query = '') {
   const body = {
     filter: { property: 'object', value: 'database' },
@@ -94,7 +94,8 @@ export async function getDatabase(token, databaseId) {
 export async function getSelf(token) {
   const me = await request(token, '/users/me');
   return {
-    name: (me.bot && me.bot.owner && me.bot.owner.user && me.bot.owner.user.name) || me.name || 'Integration',
+    name:
+      (me.bot && me.bot.owner && me.bot.owner.user && me.bot.owner.user.name) || me.name || 'this connection',
     workspace: (me.bot && me.bot.workspace_name) || ''
   };
 }
