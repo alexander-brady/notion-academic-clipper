@@ -97,19 +97,14 @@ rewritten as `authorYearWord` (switchable in settings).
 
 ### Saving a highlight
 
-Select text on the paper and save it as a quote on that paper's Notion page, under a
-**Quotes** heading:
-
-- Right-click the selection → **Save highlight to Notion**.
-- Press **Ctrl+Shift+H** (**⌘⇧H** on macOS).
-- Open the popup with text selected — it offers the quote instead of the clip form, with
-  the passage editable before it is sent.
+Select text on a paper, right-click it and choose **Save highlight to Notion**. The
+passage is added as a quote on that paper's Notion page under a **Quotes** heading.
 
 Each quote carries a link back to the exact sentence, built as a
 [text fragment](https://developer.mozilla.org/docs/Web/URI/Fragment/Text_fragments)
 (`#:~:text=`), so following it scrolls to the passage and re-highlights it. Long selections
-use the fragment syntax's `start,end` form rather than quoting the whole paragraph into the URL.
-The nearest heading above the selection is recorded next to the link.
+use the fragment syntax's `start,end` form rather than quoting the whole paragraph into the
+URL. The nearest heading above the selection is recorded next to the link.
 
 New quotes are appended to the end of the existing **Quotes** section, so they stay
 together even once you have written notes below them. If the paper has not been clipped
@@ -117,9 +112,8 @@ yet, it is clipped first and the quote goes on the new page — turn that off un
 Preferences if you would rather be told to clip it yourself. The heading name is
 configurable there too.
 
-The context-menu and keyboard routes have no window to report into, so the toolbar icon
-badges a tick or an exclamation mark, and any error is shown the next time you open the
-popup.
+There is no window to report into, so the toolbar icon badges a tick or an exclamation
+mark, and any error is shown the next time you open the popup.
 
 ## Development
 
@@ -185,11 +179,6 @@ doesn't cancel the request.
   arXiv ID visible in the address.
 - Paywalled pages expose whatever metadata they expose; the DOI is usually still there,
   which is enough to get the correct BibTeX.
-- In Chrome's built-in PDF viewer, extensions cannot read the selection, so the popup and
-  the keyboard shortcut have nothing to work with there. **Right-click → Save highlight to
-  Notion still works**, because Chrome passes the selected text to the menu event itself
-  (capped by Chrome at around 1000 characters). PDF links also get no text fragment, since
-  the viewer cannot resolve one, so the quote links to the document instead.
 - Text fragments are resolved by the browser, not stored by the page. If the source text
   is later edited, the link still opens the page but will not scroll to the passage.
 - The Notion API version is pinned to `2022-06-28`.

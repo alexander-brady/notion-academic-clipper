@@ -43,13 +43,6 @@
         "mac": "Command+Shift+S"
       },
       "description": "Clip the current page to Notion"
-    },
-    "save-highlight": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+H",
-        "mac": "Command+Shift+H"
-      },
-      "description": "Save the highlighted text to Notion"
     }
   }
 }

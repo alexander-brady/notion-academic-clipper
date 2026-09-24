@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="../styles/app.css" />
   </head>
   <body class="bg-surface px-5 pt-9 pb-16">
-    <main class="mx-auto max-w-[660px]">
+    <main class="mx-auto max-w-165">
       <h1 class="mb-1 text-[22px] font-medium">Academic Clipper for Notion</h1>
       <p class="text-muted mb-6">
         Clip papers to a Notion database with their title, URL, DOI and BibTeX entry.
@@ -33,7 +33,7 @@
           <input
             id="token"
             type="password"
-            class="input min-w-[220px] flex-1"
+            class="input min-w-55 flex-1"
             placeholder="ntn_..."
             autocomplete="off"
             spellcheck="false"
@@ -151,30 +151,16 @@
       <section class="card">
         <h2 class="card-title">4. Saving highlights</h2>
         <p class="mb-3">
-          Select text on a paper and save it as a quote on that paper's Notion page, under a
-          <strong>Quotes</strong> heading. Three ways to do it:
+          Select text on a paper, right-click it and choose
+          <strong>Save highlight to Notion</strong>. The passage is added as a quote on that paper's Notion
+          page, under a <strong>Quotes</strong> heading, and links back to the exact sentence it came from. If
+          the paper is not in your database yet it is clipped first.
         </p>
-        <ul class="mb-3 list-disc space-y-1.5 pl-5">
-          <li>Right-click the selection → <strong>Save highlight to Notion</strong>.</li>
-          <li>
-            Press <code class="code">Ctrl</code>+<code class="code">Shift</code>+<code class="code">H</code>
-            (<code class="code">⌘⇧H</code> on a Mac).
-          </li>
-          <li>
-            Open the extension with text selected — the popup offers the quote instead of the clip form.
-          </li>
-        </ul>
         <p class="text-muted text-[12.5px]">
-          Each quote links back to the exact passage using a text fragment, so following it re-highlights the
-          sentence in the page. The first two are silent: the toolbar icon shows a tick or an exclamation
-          mark, and anything that went wrong is reported the next time you open the popup. Shortcuts can be
-          rebound at
-          <code class="code">chrome://extensions/shortcuts</code>.
-        </p>
-        <p class="text-muted mt-2.5 text-[12.5px]">
-          <strong>In a PDF, use the right-click menu.</strong> Chrome does not let extensions read the
-          selection inside its built-in PDF viewer, so the popup and the shortcut find nothing there — but the
-          right-click event carries the selected text itself, so that route still works.
+          The right-click menu is the only route, because it is the one Chrome makes work everywhere —
+          including its built-in PDF viewer, where extensions cannot read the selection from the page but the
+          menu event carries the text itself. There is no window to report into, so the toolbar icon flashes a
+          tick or an exclamation mark, and anything that went wrong is shown the next time you open the popup.
         </p>
       </section>
 

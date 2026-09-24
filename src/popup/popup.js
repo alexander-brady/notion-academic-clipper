@@ -12,9 +12,7 @@ const state = {
   citeKey: '',
   entryType: '',
   duplicate: null,
-  saving: false,
-  selection: null,
-  quoteTarget: null
+  saving: false
 };
 
 /* ------------------------------------------------------------------ */
@@ -49,13 +47,9 @@ const DOT = {
   warn: 'bg-danger'
 };
 
-// The clip and quote screens each carry their own copy of the status line and
-// the notice toast; only one screen is ever visible, so both are written to.
 function setStatus(text, kind = '') {
-  for (const el of document.querySelectorAll('[data-status-text]')) el.textContent = text;
-  for (const el of document.querySelectorAll('[data-status-dot]')) {
-    el.className = `size-[7px] flex-none rounded-full ${DOT[kind] ?? DOT['']}`;
-  }
+  $('source-line').textContent = text;
+  $('status-dot').className = `size-[7px] flex-none rounded-full ${DOT[kind] ?? DOT['']}`;
 }
 
 const NOTICE = { '': '', error: 'notice-error', warn: 'notice-warn' };
@@ -73,20 +67,17 @@ function notice(message, kind = '') {
   if (pinned && (RANK[kind] ?? 0) < RANK[pinned]) return;
   pinned = RANK[kind] ? kind : '';
 
-  for (const el of document.querySelectorAll('[data-notice]')) {
-    el.querySelector('[data-notice-text]').textContent = message;
-    el.className = `notice ${NOTICE[kind] ?? ''}`.trimEnd();
-    el.hidden = false;
-  }
+  const el = $('notice');
+  $('notice-text').textContent = message;
+  el.className = `notice ${NOTICE[kind] ?? ''}`.trimEnd();
+  el.hidden = false;
 }
 
 /** Only ever called from something the user did: the ×, or starting a save. */
 function clearNotice() {
   pinned = '';
-  for (const el of document.querySelectorAll('[data-notice]')) {
-    el.querySelector('[data-notice-text]').textContent = '';
-    el.hidden = true;
-  }
+  $('notice-text').textContent = '';
+  $('notice').hidden = true;
 }
 
 /**
@@ -118,21 +109,14 @@ for (const id of ['title', 'url', 'doi', 'year', 'authors', 'journal', 'bibtex']
 /* ------------------------------------------------------------------ */
 
 async function boot() {
-  // The clip screen is already on screen: it is the one that ships unhidden in
-  // the markup, so the popup opens with its full layout instead of painting an
-  // empty box and filling it in once Notion answers.
+  // The clip screen ships unhidden in the markup, so the popup opens with its
+  // full layout instead of painting an empty box and filling it in once Notion
+  // answers.
   const tabQuery = chrome.tabs.query({ active: true, currentWindow: true });
-  const initReady = send('init');
-
-  // Asking the page for its selection does not involve Notion, so it runs
-  // alongside the init round-trip rather than queued behind it.
-  const selectionReady = tabQuery
-    .then(([tab]) => (tab && tab.id != null ? send('selection', { tabId: tab.id }) : null))
-    .catch(() => null);
 
   let init;
   try {
-    init = await initReady;
+    init = await send('init');
   } catch (e) {
     setStatus('Connection problem', 'warn');
     notice(e.message, 'error');
@@ -150,28 +134,12 @@ async function boot() {
   state.databases = init.databases || [];
   renderDatabases(init.lastDatabaseId);
 
-  // A highlight saved from the context menu or the shortcut has no UI of its
-  // own, so its result is reported here the next time the popup opens.
+  // Highlights are saved from the right-click menu, which has no window to
+  // report into, so the outcome is shown here the next time the popup opens.
   const last = init.lastQuote;
   if (last && !last.ok) notice(`The last highlight was not saved: ${last.error}`, 'error');
-
-  const selection = await selectionReady;
-  if (selection && selection.text.trim()) {
-    await bootQuote(selection);
-    return;
-  }
-
-  // A highlight was attempted but Chrome would not surrender the text. Reopen
-  // on the quote screen so the passage can simply be pasted in.
-  if (last && !last.ok && last.needsText) {
-    await bootQuote({ text: '', section: '', href: last.href || '' }, last.error);
-    return;
-  }
-
-  if (last && last.ok) {
+  else if (last && last.ok) {
     notice(last.created ? 'Highlight saved to a newly clipped page.' : 'Highlight saved.', '');
-  } else if (selection && selection.error) {
-    notice(`Highlights are not available on this page: ${selection.error}`, 'warn');
   }
 
   if (!state.databases.length) {
@@ -182,106 +150,15 @@ async function boot() {
     );
   }
 
-  await loadClip();
+  setStatus('Reading page…', 'busy');
+  // Scrape and load the database schema at the same time.
+  const schemaLoad = loadDatabase($('database').value);
+  await loadPage();
+  await schemaLoad;
+  await checkDuplicate();
 }
 
-/** The clip form is only filled in when it is actually going to be shown. */
-let clipLoading = null;
-function loadClip() {
-  if (!clipLoading) {
-    clipLoading = (async () => {
-      setStatus('Reading page…', 'busy');
-      // Scrape and load the database schema at the same time.
-      const schemaLoad = loadDatabase($('database').value);
-      await loadPage();
-      await schemaLoad;
-      await checkDuplicate();
-    })();
-  }
-  return clipLoading;
-}
-
-/* ------------------------------------------------------------------ */
-/* Highlights                                                          */
-/* ------------------------------------------------------------------ */
-
-async function bootQuote(selection, why = '') {
-  state.selection = selection;
-  showScreen('quote');
-  $('quote-text').value = selection.text.trim();
-
-  if (selection.section) {
-    $('quote-section').textContent = selection.section;
-    $('quote-section-row').hidden = false;
-  }
-
-  if (!selection.text.trim()) {
-    $('quote-hint').hidden = false;
-    $('quote-text').focus();
-    if (why) notice(why, 'warn');
-  }
-
-  setStatus('Finding the paper in Notion…', 'busy');
-  try {
-    const target = await send('quoteTarget', { tabId: state.tabId });
-    state.quoteTarget = target;
-
-    if (target.page) {
-      $('quote-target').textContent = `${target.page.title} — in ${target.database.title}`;
-      setStatus('Already clipped', 'ok');
-    } else {
-      $('quote-target').textContent =
-        `Not clipped yet. The paper will be added to ${target.database.title} first, ` +
-        'then the quote goes on its page.';
-      $('quote-save-label').textContent = 'Clip page + save quote';
-      setStatus('Not in Notion yet', '');
-    }
-  } catch (e) {
-    $('quote-target').textContent = 'Could not check Notion.';
-    setStatus('Lookup failed', 'warn');
-    notice(e.message, 'error');
-  }
-}
-
-async function saveQuote() {
-  if (state.saving) return;
-  const text = $('quote-text').value.trim();
-  if (!text) {
-    notice('There is nothing to quote — select some text on the page first.', 'warn');
-    return;
-  }
-
-  state.saving = true;
-  $('quote-save').disabled = true;
-  const label = $('quote-save-label').textContent;
-  $('quote-save-label').textContent = 'Saving…';
-  setStatus('Saving to Notion…', 'busy');
-  clearNotice();
-
-  const found = state.quoteTarget && state.quoteTarget.page;
-  try {
-    const { page, created, heading } = await send('saveQuote', {
-      tabId: state.tabId,
-      text,
-      section: state.selection.section,
-      href: state.selection.href,
-      pageId: found ? found.id : '',
-      pageUrl: found ? found.url : '',
-      pageTitle: found ? found.title : ''
-    });
-    showDone(created ? 'Clipped, with your quote' : `Quote added under ${heading}`, page.title, page.url);
-  } catch (e) {
-    setStatus('Save failed', 'warn');
-    notice(e.message, 'error');
-    $('quote-save-label').textContent = label;
-  } finally {
-    state.saving = false;
-    $('quote-save').disabled = false;
-  }
-}
-
-function showDone(heading, title, url) {
-  $('done-heading').textContent = heading;
+function showDone(title, url) {
   $('done-title').textContent = title || '';
   $('open-page').dataset.url = url || '';
   showScreen('done');
@@ -554,7 +431,7 @@ async function save() {
       map: state.map
     });
 
-    showDone('Saved to Notion', $('title').value.trim(), page.url);
+    showDone($('title').value.trim(), page.url);
   } catch (e) {
     setStatus('Save failed', 'warn');
     notice(e.message, 'error');
@@ -608,37 +485,22 @@ $('copy-bibtex').addEventListener('click', async () => {
 $('save').addEventListener('click', save);
 $('open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
 
-$('quote-save').addEventListener('click', saveQuote);
-
-$('quote-clip').addEventListener('click', async () => {
-  showScreen('clip');
-  clearNotice();
-  await loadClip();
-});
-
 $('open-page').addEventListener('click', (e) => {
   const url = e.currentTarget.dataset.url;
   if (url) chrome.tabs.create({ url });
   window.close();
 });
 
-$('clip-again').addEventListener('click', async () => {
+$('clip-again').addEventListener('click', () => {
   $('save-label').textContent = 'Save to Notion';
   showScreen('clip');
-  await loadClip();
 });
 
-// Both screens carry a settings button and a notice toast.
-document.addEventListener('click', (e) => {
-  if (e.target.closest('[data-settings]')) chrome.runtime.openOptionsPage();
-  if (e.target.closest('[data-notice-close]')) clearNotice();
-});
+$('settings').addEventListener('click', () => chrome.runtime.openOptionsPage());
+$('notice-close').addEventListener('click', clearNotice);
 
 document.addEventListener('keydown', (e) => {
-  if (!(e.metaKey || e.ctrlKey) || e.key !== 'Enter') return;
-  const screen = document.querySelector('[data-screen]:not([hidden])');
-  if (screen && screen.dataset.screen === 'quote') saveQuote();
-  else save();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') save();
 });
 
 boot();

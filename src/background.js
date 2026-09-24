@@ -92,10 +92,15 @@ async function scrapeTab(tabId) {
   }
 }
 
-/** The highlighted passage, and which section of the page it came from. */
+/**
+ * The highlighted passage, and which section of the page it came from.
+ * Chrome refuses to script its built-in PDF viewer, so this comes back empty
+ * there and the right-click menu supplies the text instead.
+ */
 async function readSelection(tabId) {
-  const empty = { text: '', section: '', href: '', title: '', error: '' };
-  if (tabId == null) return { ...empty, error: 'No active tab.' };
+  const empty = { text: '', section: '', href: '' };
+  if (tabId == null) return empty;
+
   const run = async (target) => {
     const injections = await chrome.scripting.executeScript({ target, func: extractSelection });
     return injections.map((i) => i && i.result).filter(Boolean);
@@ -109,38 +114,12 @@ async function readSelection(tabId) {
     // or PDF frame. Frames this extension cannot touch are simply skipped.
     const frames = await run({ tabId, allFrames: true }).catch(() => []);
     const hit = frames.find((r) => r.text && r.text.trim());
-    if (hit) return { ...empty, ...hit };
-
-    return { ...empty, ...(top[0] || {}), error: await selectionUnavailable(tabId, '') };
+    return { ...empty, ...(hit || top[0] || {}) };
   } catch (e) {
-    // The same restricted pages that defeat scraping: chrome://, the Web
-    // Store, the built-in PDF viewer.
     console.warn('[clipper] could not read the selection', e);
-    return { ...empty, error: await selectionUnavailable(tabId, e.message || String(e)) };
+    return empty;
   }
 }
-
-/**
- * Chrome will not run scripts inside its built-in PDF viewer, and the viewer
- * keeps the text in a plugin the page cannot see either, so a selection there
- * reads as empty. The right-click route still works, because Chrome hands the
- * selected text to the menu event.
- */
-const PDF_URL = /\.pdf($|[?#])|\/pdf\//i;
-
-async function selectionUnavailable(tabId, fallback) {
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    if (PDF_URL.test(tab.url || '')) return PDF_NOTE;
-  } catch {
-    /* fall through to whatever the original failure was */
-  }
-  return fallback;
-}
-
-const PDF_NOTE =
-  'Chrome does not hand the selected text in its built-in PDF viewer to extensions, from the page or ' +
-  'from the right-click menu. Open the extension and paste the passage into the Quote box instead.';
 
 /* ------------------------------------------------------------------ */
 /* Highlights                                                          */
@@ -214,40 +193,34 @@ async function clipForQuote({ token, prefs, maps, database, meta }) {
  * Find (or create) the paper's page, then append the passage under the quotes
  * heading. Shared by the popup, the context menu and the keyboard shortcut.
  */
-async function addQuote({ tabId, text, section, href, pageId, pageUrl, pageTitle, databaseId }) {
+async function addQuote({ tabId, text, section, href }) {
   const { token, lastDatabaseId, maps, prefs } = await getSettings();
   if (!token) throw new Error('Connect to Notion first — open the extension options.');
 
   const passage = normalizeQuote(text);
   if (!passage) throw new Error('Select some text on the page first.');
 
-  let target = pageId ? { id: pageId, url: pageUrl, title: pageTitle } : null;
+  const { meta } = await scrapeTab(tabId);
+  const sourceUrl = href || meta.url;
+
+  const databases = await searchDatabases(token);
+  if (!databases.length) throw new Error('No database is shared with this connection yet.');
+
+  const found = await findClippedPage(token, databases, maps, lastDatabaseId, {
+    doi: meta.doi,
+    url: meta.url
+  });
+
+  let target = found && found.page;
   let created = false;
-  let sourceUrl = href;
 
   if (!target) {
-    const { meta } = await scrapeTab(tabId);
-    sourceUrl = sourceUrl || meta.url;
-
-    const databases = await searchDatabases(token);
-    if (!databases.length) throw new Error('No database is shared with this connection yet.');
-
-    const preferred = databaseId || lastDatabaseId;
-    const found = await findClippedPage(token, databases, maps, preferred, {
-      doi: meta.doi,
-      url: meta.url
-    });
-
-    if (found) {
-      target = found.page;
-    } else {
-      if (!prefs.quoteCreatesPage) {
-        throw new Error('This paper is not in Notion yet. Clip the page first, then save the highlight.');
-      }
-      const database = databases.find((d) => d.id === preferred) || databases[0];
-      target = await clipForQuote({ token, prefs, maps, database, meta });
-      created = true;
+    if (!prefs.quoteCreatesPage) {
+      throw new Error('This paper is not in Notion yet. Clip the page first, then save the highlight.');
     }
+    const database = databases.find((d) => d.id === lastDatabaseId) || databases[0];
+    target = await clipForQuote({ token, prefs, maps, database, meta });
+    created = true;
   }
 
   // A page that was just created has no quotes section yet, so one is added.
@@ -300,15 +273,9 @@ async function quoteFromTab(tab, info) {
       console.warn('[clipper] no selection available', {
         url: tab.url,
         fromPage: JSON.stringify(selection.text),
-        fromMenu: JSON.stringify(menuText),
-        scriptError: selection.error
+        fromMenu: JSON.stringify(menuText)
       });
-      const reason =
-        selection.error ||
-        (PDF_URL.test(tab.url || '')
-          ? PDF_NOTE
-          : 'Chrome reported no selected text for this page. Select the passage, then try again.');
-      throw new Error(reason);
+      throw new Error('Chrome reported no selected text for this page. Select the passage, then try again.');
     }
 
     const result = await addQuote({
@@ -327,16 +294,7 @@ async function quoteFromTab(tab, info) {
     });
     await flashBadge('✓', '#188038');
   } catch (e) {
-    // `needsText` lets the popup reopen on the quote screen with an empty box,
-    // which is the only way through on a page whose selection cannot be read.
-    await chrome.storage.local.set({
-      lastQuote: {
-        ok: false,
-        error: e.message,
-        needsText: /select|selected text|paste the passage/i.test(e.message),
-        href: (tab && tab.url) || ''
-      }
-    });
+    await chrome.storage.local.set({ lastQuote: { ok: false, error: e.message } });
     await flashBadge('!', '#d93025');
   }
 }
@@ -357,35 +315,6 @@ const handlers = {
 
     const [databases, self] = await Promise.all([searchDatabases(token), getSelf(token).catch(() => null)]);
     return { connected: true, databases, lastDatabaseId, prefs, self, lastQuote: lastQuote || null };
-  },
-
-  async selection({ tabId }) {
-    return readSelection(tabId);
-  },
-
-  /** Which Notion page a highlight from this tab would land on. */
-  async quoteTarget({ tabId, databaseId }) {
-    const { token, lastDatabaseId, maps } = await getSettings();
-    const { meta } = await scrapeTab(tabId);
-    const databases = await searchDatabases(token);
-    if (!databases.length) throw new Error('No database is shared with this connection yet.');
-
-    const preferred = databaseId || lastDatabaseId;
-    const found = await findClippedPage(token, databases, maps, preferred, {
-      doi: meta.doi,
-      url: meta.url
-    });
-    const fallback = databases.find((d) => d.id === preferred) || databases[0];
-
-    return {
-      page: found ? found.page : null,
-      database: found ? found.database : fallback,
-      url: meta.url
-    };
-  },
-
-  async saveQuote(payload) {
-    return addQuote(payload);
   },
 
   async refreshDatabases({ query }) {
@@ -543,8 +472,4 @@ chrome.runtime.onStartup.addListener(registerContextMenu);
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === QUOTE_MENU_ID) quoteFromTab(tab, info);
-});
-
-chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === 'save-highlight') quoteFromTab(tab);
 });
