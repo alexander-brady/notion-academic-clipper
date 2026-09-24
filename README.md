@@ -4,7 +4,7 @@ A Notion Web Clipper for papers. Click the toolbar button, confirm the database 
 title, and the page is saved to Notion — along with its **DOI** and a **BibTeX entry**
 resolved from Crossref, DataCite, arXiv or PubMed.
 
-```
+```bib
 Title      Attention Is All You Need
 URL        https://arxiv.org/abs/1706.03762
 DOI        10.48550/arXiv.1706.03762

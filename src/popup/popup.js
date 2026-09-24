@@ -118,28 +118,34 @@ for (const id of ['title', 'url', 'doi', 'year', 'authors', 'journal', 'bibtex']
 /* ------------------------------------------------------------------ */
 
 async function boot() {
+  // The clip screen is already on screen: it is the one that ships unhidden in
+  // the markup, so the popup opens with its full layout instead of painting an
+  // empty box and filling it in once Notion answers.
+  const tabQuery = chrome.tabs.query({ active: true, currentWindow: true });
+  const initReady = send('init');
+
+  // Asking the page for its selection does not involve Notion, so it runs
+  // alongside the init round-trip rather than queued behind it.
+  const selectionReady = tabQuery
+    .then(([tab]) => (tab && tab.id != null ? send('selection', { tabId: tab.id }) : null))
+    .catch(() => null);
+
   let init;
   try {
-    init = await send('init');
+    init = await initReady;
   } catch (e) {
-    showScreen('clip');
     setStatus('Connection problem', 'warn');
     notice(e.message, 'error');
     return;
   }
 
+  const [tab] = await tabQuery;
+  state.tabId = tab && tab.id;
+
   if (!init.connected) {
     showScreen('setup');
     return;
   }
-
-  // The clip form is shown straight away rather than after the selection
-  // round-trip, so the popup is never briefly blank.
-  showScreen('clip');
-  setStatus('Reading page…', 'busy');
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  state.tabId = tab && tab.id;
 
   state.databases = init.databases || [];
   renderDatabases(init.lastDatabaseId);
@@ -149,8 +155,7 @@ async function boot() {
   const last = init.lastQuote;
   if (last && !last.ok) notice(`The last highlight was not saved: ${last.error}`, 'error');
 
-  const selection =
-    state.tabId == null ? null : await send('selection', { tabId: state.tabId }).catch(() => null);
+  const selection = await selectionReady;
   if (selection && selection.text.trim()) {
     await bootQuote(selection);
     return;

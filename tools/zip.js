@@ -55,7 +55,9 @@ function collect() {
   }
   for (const dir of INCLUDE_DIRS) {
     for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
-      if (entry.isFile()) files.push(`${dir}/${entry.name}`);
+      // clip.svg is the source the PNGs are generated from, not something the
+      // extension loads, so it stays out of the package.
+      if (entry.isFile() && !entry.name.endsWith('.svg')) files.push(`${dir}/${entry.name}`);
     }
   }
   return files.sort();

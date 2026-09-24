@@ -1,14 +1,16 @@
-// Generates the extension icons as real PNGs (no image deps).
+// Generates the extension icons from icons/clip.svg as real PNGs, with no
+// image dependencies.
+//
+// Chrome will not accept an SVG for a manifest or toolbar icon, so the SVG is
+// the source and these PNGs are the build output. Only the subset of path
+// syntax that file actually uses is understood; anything else raises rather
+// than quietly drawing the wrong shape.
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const OUT = process.argv[2];
 const SS = 4; // supersampling factor for antialiasing
-
-const ACCENT = [47, 111, 228];
-const ACCENT_DARK = [30, 80, 180];
-const WHITE = [255, 255, 255];
 
 function crc32(buf) {
   let c;
@@ -56,30 +58,178 @@ function png(width, height, rgba) {
   ]);
 }
 
-// --- shape tests, all in a 0..1 unit square -------------------------------
+// --- the path, read from the SVG ------------------------------------------
 
-const inRoundedRect = (x, y, x0, y0, x1, y1, r) => {
-  if (x < x0 || x > x1 || y < y0 || y > y1) return false;
-  const cx = Math.min(Math.max(x, x0 + r), x1 - r);
-  const cy = Math.min(Math.max(y, y0 + r), y1 - r);
-  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
-};
+const SVG = fs.readFileSync(new URL('../icons/clip.svg', import.meta.url), 'utf8');
 
-// A bookmark: rectangle with a notch cut out of the bottom edge.
-function inBookmark(x, y) {
-  const x0 = 0.3,
-    x1 = 0.7,
-    y0 = 0.2,
-    y1 = 0.8;
-  if (!inRoundedRect(x, y, x0, y0, x1, y1, 0.045)) return false;
-  const notchTop = 0.575;
-  if (y > notchTop) {
-    const t = (y - notchTop) / (y1 - notchTop);
-    const halfWidth = ((x1 - x0) / 2) * t;
-    const cx = (x0 + x1) / 2;
-    if (Math.abs(x - cx) < halfWidth) return false; // carved-out V
+function attr(name) {
+  const found = SVG.match(new RegExp(name + '="([^"]+)"'));
+  if (!found) throw new Error(`icons/clip.svg has no ${name}`);
+  return found[1];
+}
+
+const STROKE = parseFloat(attr('stroke-width'));
+const VIEWBOX = parseFloat(attr('viewBox').split(/[\s,]+/)[2]);
+
+/** The clip alone on a transparent background: no tile, no border. */
+const INK = (() => {
+  const hex = attr('stroke').replace('#', '');
+  const full = hex.length === 3 ? [...hex].map((c) => c + c).join('') : hex;
+  if (!/^[0-9a-f]{6}$/i.test(full)) throw new Error(`unsupported stroke colour "${attr('stroke')}"`);
+  return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+})();
+
+/**
+ * Parses the `m` / `l` / `a` subset of SVG path data into segments and arcs.
+ * Everything in this icon is a straight run or a circular arc, so that is all
+ * that is supported.
+ */
+function parsePath(d) {
+  // Numbers first, so the `e` of an exponent is never taken for a command.
+  const tokens = d.match(/-?\d*\.?\d+(?:e[-+]?\d+)?|[a-z]/gi) || [];
+  const nodes = [];
+  const segments = [];
+  const arcs = [];
+
+  let i = 0;
+  let cmd = '';
+  let x = 0;
+  let y = 0;
+  const next = () => parseFloat(tokens[i++]);
+  const push = (nx, ny) => nodes.push([nx, ny]) - 1;
+
+  while (i < tokens.length) {
+    if (/[a-z]/i.test(tokens[i])) cmd = tokens[i++];
+    const relative = cmd === cmd.toLowerCase();
+    const step = (dx, dy) => {
+      x = relative ? x + dx : dx;
+      y = relative ? y + dy : dy;
+    };
+
+    switch (cmd.toLowerCase()) {
+      case 'm': {
+        step(next(), next());
+        push(x, y);
+        // Further pairs after a moveto are an implicit lineto.
+        cmd = relative ? 'l' : 'L';
+        break;
+      }
+      case 'l': {
+        const from = nodes.length - 1;
+        step(next(), next());
+        segments.push([from, push(x, y)]);
+        break;
+      }
+      case 'a': {
+        const rx = next();
+        const ry = next();
+        next(); // x-axis rotation, always 0 here
+        next(); // large-arc flag
+        const sweep = next();
+        const from = nodes.length - 1;
+        step(next(), next());
+        if (Math.abs(rx - ry) > 1e-6) throw new Error('only circular arcs are supported');
+        arcs.push({ from, to: push(x, y), r: rx, sweep });
+        break;
+      }
+      default:
+        throw new Error(`unsupported path command "${cmd}"`);
+    }
   }
-  return true;
+  return { nodes, segments, arcs };
+}
+
+const { nodes: NODES, segments: SEGMENTS, arcs: ARCS } = parsePath(attr('d'));
+
+/*
+ * Every arc in this path has a chord equal to its diameter, so each one is a
+ * plain semicircle centred on the midpoint of its endpoints. That is what lets
+ * the wire be built from two primitives instead of a general path rasteriser,
+ * so it is checked rather than assumed.
+ */
+const SWEEPS = ARCS.map(({ from, to, r, sweep }) => {
+  const [ax, ay] = NODES[from];
+  const [bx, by] = NODES[to];
+  const chord = Math.hypot(bx - ax, by - ay);
+  if (Math.abs(chord - 2 * r) > 0.05) {
+    throw new Error(`an arc of radius ${r} spans ${chord.toFixed(2)}, so it is not a semicircle`);
+  }
+
+  const cx = (ax + bx) / 2;
+  const cy = (ay + by) / 2;
+  const start = Math.atan2(ay - cy, ax - cx);
+  // With y pointing down, sweep-flag 1 is the increasing direction.
+  return sweep
+    ? { cx, cy, r, a0: start, a1: start + Math.PI }
+    : { cx, cy, r, a0: start - Math.PI, a1: start };
+});
+
+// --- rasterising ----------------------------------------------------------
+
+/** Distance from a point to a line segment. */
+function distToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len = dx * dx + dy * dy;
+  const t = len ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len)) : 0;
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Distance to an arc, measured to the nearer endpoint outside the sweep. */
+function distToArc(px, py, cx, cy, r, a0, a1) {
+  const TAU = Math.PI * 2;
+  let offset = Math.atan2(py - cy, px - cx) - a0;
+  while (offset < 0) offset += TAU;
+  while (offset >= TAU) offset -= TAU;
+  if (offset <= a1 - a0) return Math.abs(Math.hypot(px - cx, py - cy) - r);
+  return Math.min(
+    Math.hypot(px - (cx + r * Math.cos(a0)), py - (cy + r * Math.sin(a0))),
+    Math.hypot(px - (cx + r * Math.cos(a1)), py - (cy + r * Math.sin(a1)))
+  );
+}
+
+/** Distance to the wire, in SVG units. Round caps come free from the metric. */
+function distToClip(u, v) {
+  let d = Infinity;
+  for (const [a, b] of SEGMENTS) {
+    d = Math.min(d, distToSegment(u, v, NODES[a][0], NODES[a][1], NODES[b][0], NODES[b][1]));
+  }
+  for (const arc of SWEEPS) {
+    d = Math.min(d, distToArc(u, v, arc.cx, arc.cy, arc.r, arc.a0, arc.a1));
+  }
+  return d;
+}
+
+/*
+ * Fit the stroked path to the canvas. The path is not centred in its own
+ * viewBox, so the bounds are measured rather than assumed.
+ */
+const FIT = (() => {
+  const STEPS = 240;
+  let minU = Infinity;
+  let minV = Infinity;
+  let maxU = -Infinity;
+  let maxV = -Infinity;
+  for (let i = 0; i < STEPS; i++) {
+    for (let j = 0; j < STEPS; j++) {
+      const u = ((i + 0.5) / STEPS) * VIEWBOX;
+      const v = ((j + 0.5) / STEPS) * VIEWBOX;
+      if (distToClip(u, v) > STROKE / 2) continue;
+      minU = Math.min(minU, u);
+      maxU = Math.max(maxU, u);
+      minV = Math.min(minV, v);
+      maxV = Math.max(maxV, v);
+    }
+  }
+  const EXTENT = 0.88; // of the canvas; there is no tile to inset from
+  const scale = EXTENT / Math.max(maxU - minU, maxV - minV);
+  return { scale, cu: (minU + maxU) / 2, cv: (minV + maxV) / 2 };
+})();
+
+function inPaperclip(x, y) {
+  const u = (x - 0.5) / FIT.scale + FIT.cu;
+  const v = (y - 0.5) / FIT.scale + FIT.cv;
+  return distToClip(u, v) <= STROKE / 2;
 }
 
 function render(size) {
@@ -92,20 +242,12 @@ function render(size) {
       const v = (y + 0.5) / w;
       const i = (y * w + x) * 4;
 
-      if (!inRoundedRect(u, v, 0.02, 0.02, 0.98, 0.98, 0.22)) continue;
+      // Everything that is not wire stays fully transparent.
+      if (!inPaperclip(u, v)) continue;
 
-      // Subtle vertical gradient on the tile.
-      const g = v;
-      const base = [
-        Math.round(ACCENT[0] * (1 - g) + ACCENT_DARK[0] * g),
-        Math.round(ACCENT[1] * (1 - g) + ACCENT_DARK[1] * g),
-        Math.round(ACCENT[2] * (1 - g) + ACCENT_DARK[2] * g)
-      ];
-      const colour = inBookmark(u, v) ? WHITE : base;
-
-      px[i] = colour[0];
-      px[i + 1] = colour[1];
-      px[i + 2] = colour[2];
+      px[i] = INK[0];
+      px[i + 1] = INK[1];
+      px[i + 2] = INK[2];
       px[i + 3] = 255;
     }
   }
