@@ -119,19 +119,21 @@ const PREF_INPUTS = {
   includeAbstract: 'pref-abstract',
   includeBibtexBlock: 'pref-bibtex-block',
   rewriteCiteKey: 'pref-citekey',
-  checkDuplicates: 'pref-duplicates'
+  checkDuplicates: 'pref-duplicates',
+  quoteCreatesPage: 'pref-quote-clips'
 };
 
 async function persistPrefs() {
   const prefs = {};
   for (const [key, id] of Object.entries(PREF_INPUTS)) prefs[key] = $(id).checked;
   prefs.pageIcon = $('pref-icon').value.trim();
+  prefs.quoteHeading = $('pref-quote-heading').value.trim() || 'Quotes';
   await send('savePrefs', { prefs });
   setStatus($('prefs-status'), 'Saved.', 'ok');
   setTimeout(() => setStatus($('prefs-status'), ''), 1500);
 }
 
-for (const id of [...Object.values(PREF_INPUTS), 'pref-icon']) {
+for (const id of [...Object.values(PREF_INPUTS), 'pref-icon', 'pref-quote-heading']) {
   $(id).addEventListener('change', persistPrefs);
 }
 
@@ -146,6 +148,7 @@ for (const id of [...Object.values(PREF_INPUTS), 'pref-icon']) {
   const prefs = init.prefs || {};
   for (const [key, id] of Object.entries(PREF_INPUTS)) $(id).checked = prefs[key] !== false;
   $('pref-icon').value = prefs.pageIcon || '';
+  $('pref-quote-heading').value = prefs.quoteHeading || 'Quotes';
 
   if (init.connected) {
     $('token').placeholder = '•••••••• saved';

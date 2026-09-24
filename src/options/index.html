@@ -149,6 +149,36 @@
       </section>
 
       <section class="card">
+        <h2 class="card-title">4. Saving highlights</h2>
+        <p class="mb-3">
+          Select text on a paper and save it as a quote on that paper's Notion page, under a
+          <strong>Quotes</strong> heading. Three ways to do it:
+        </p>
+        <ul class="mb-3 list-disc space-y-1.5 pl-5">
+          <li>Right-click the selection → <strong>Save highlight to Notion</strong>.</li>
+          <li>
+            Press <code class="code">Ctrl</code>+<code class="code">Shift</code>+<code class="code">H</code>
+            (<code class="code">⌘⇧H</code> on a Mac).
+          </li>
+          <li>
+            Open the extension with text selected — the popup offers the quote instead of the clip form.
+          </li>
+        </ul>
+        <p class="text-muted text-[12.5px]">
+          Each quote links back to the exact passage using a text fragment, so following it re-highlights the
+          sentence in the page. The first two are silent: the toolbar icon shows a tick or an exclamation
+          mark, and anything that went wrong is reported the next time you open the popup. Shortcuts can be
+          rebound at
+          <code class="code">chrome://extensions/shortcuts</code>.
+        </p>
+        <p class="text-muted mt-2.5 text-[12.5px]">
+          <strong>In a PDF, use the right-click menu.</strong> Chrome does not let extensions read the
+          selection inside its built-in PDF viewer, so the popup and the shortcut find nothing there — but the
+          right-click event carries the selected text itself, so that route still works.
+        </p>
+      </section>
+
+      <section class="card">
         <h2 class="card-title">Preferences</h2>
         <label class="check"
           ><input type="checkbox" id="pref-abstract" class="checkbox" /> Add the abstract to the page
@@ -166,10 +196,20 @@
           ><input type="checkbox" id="pref-duplicates" class="checkbox" /> Warn when the DOI or URL is already
           in the database</label
         >
-        <label class="check gap-3">
-          Page icon
-          <input type="text" id="pref-icon" class="input w-16 flex-none p-1 text-center" maxlength="4" />
-        </label>
+        <label class="check"
+          ><input type="checkbox" id="pref-quote-clips" class="checkbox" /> Clip the paper first if a
+          highlight is saved from a page that isn't in Notion yet</label
+        >
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <label class="check mb-0 gap-3">
+            Page icon
+            <input type="text" id="pref-icon" class="input w-16 flex-none p-1 text-center" maxlength="4" />
+          </label>
+          <label class="check mb-0 gap-3">
+            Highlights heading
+            <input type="text" id="pref-quote-heading" class="input w-36 flex-none p-1" maxlength="60" />
+          </label>
+        </div>
         <p id="prefs-status" class="status"></p>
       </section>
 

@@ -117,7 +117,7 @@ export async function findDuplicate(token, databaseId, { doi, url, propertyMap }
       body: { filter: or.length === 1 ? or[0] : { or }, page_size: 1 }
     });
     const hit = (data.results || [])[0];
-    return hit ? { id: hit.id, url: hit.url } : null;
+    return hit ? { id: hit.id, url: hit.url, title: pageTitle(hit) } : null;
   } catch {
     // A duplicate check is a convenience; never block the clip on it.
     return null;
@@ -152,4 +152,34 @@ function iconOf(icon) {
   if (!icon) return '';
   if (icon.type === 'emoji') return icon.emoji;
   return '';
+}
+
+/** Top-level blocks of a page — enough to locate an existing section. */
+export async function listChildren(token, blockId) {
+  const data = await request(token, `/blocks/${blockId}/children?page_size=100`);
+  return data.results || [];
+}
+
+/**
+ * Append blocks to a page, optionally directly after an existing block.
+ * Falls back to the end of the page, which Notion always accepts.
+ */
+export async function appendChildren(token, blockId, children, after) {
+  const body = { children: (children || []).slice(0, 100) };
+  if (!body.children.length) return null;
+
+  const send = (payload) => request(token, `/blocks/${blockId}/children`, { method: 'PATCH', body: payload });
+
+  if (!after) return send(body);
+  try {
+    return await send({ ...body, after });
+  } catch (e) {
+    if (e instanceof NotionError && e.code === 'validation_error') return send(body);
+    throw e;
+  }
+}
+
+function pageTitle(page) {
+  const prop = Object.values((page && page.properties) || {}).find((p) => p.type === 'title');
+  return plainTitle(prop && prop.title) || 'Untitled';
 }

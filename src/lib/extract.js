@@ -331,3 +331,34 @@ export function extractPageMetadata() {
     siteName: meta(['og:site_name']) || location.hostname.replace(/^www\./, '')
   };
 }
+
+/**
+ * Reads the current selection and the section it sits in. Like
+ * extractPageMetadata this is injected into the page by chrome.scripting, so
+ * it has to stay self-contained.
+ */
+export function extractSelection() {
+  const empty = { text: '', section: '', href: location.href, title: document.title || '' };
+
+  const selection = window.getSelection();
+  const text = selection ? String(selection) : '';
+  if (!text.trim()) return empty;
+
+  let section = '';
+  try {
+    const range = selection.getRangeAt(0);
+    const start = range.startContainer;
+    // The last heading that begins before the selection does is the section
+    // the passage was read under.
+    for (const h of document.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
+      if (h.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        section = h.textContent || '';
+      }
+    }
+    section = section.replace(/\s+/g, ' ').trim().slice(0, 120);
+  } catch {
+    /* a detached or cross-document range: the passage alone is enough */
+  }
+
+  return { ...empty, text, section };
+}

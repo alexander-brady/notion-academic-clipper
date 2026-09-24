@@ -31,11 +31,11 @@
         <div class="min-w-0 flex-1">
           <h1 class="text-[13px] leading-tight font-medium">Clip to Notion</h1>
           <div class="text-muted mt-0.5 flex items-center gap-1.5 text-[11.5px]">
-            <span id="status-dot" class="bg-muted size-[7px] flex-none rounded-full"></span>
-            <span id="source-line" class="truncate">Reading page…</span>
+            <span data-status-dot class="bg-muted size-[7px] flex-none rounded-full"></span>
+            <span data-status-text class="truncate">Reading page…</span>
           </div>
         </div>
-        <button id="settings" class="icon-btn" title="Settings" aria-label="Settings">
+        <button data-settings class="icon-btn" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path
               d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"
@@ -136,9 +136,9 @@
       <footer class="border-line relative border-t px-4 py-3">
         <!-- Floats above the footer, over the form, so it cannot be scrolled
              past unnoticed. -->
-        <div id="notice" class="notice" hidden>
-          <span id="notice-text" class="flex-1"></span>
-          <button id="notice-close" class="notice-close" title="Dismiss" aria-label="Dismiss">
+        <div data-notice class="notice" hidden>
+          <span data-notice-text class="flex-1"></span>
+          <button data-notice-close class="notice-close" title="Dismiss" aria-label="Dismiss">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
@@ -152,6 +152,78 @@
       </footer>
     </section>
 
+    <!-- Save a highlighted passage --------------------------------------- -->
+    <section data-screen="quote" class="flex max-h-[584px] flex-col" hidden>
+      <header class="border-line flex items-center gap-2 border-b px-4 py-2.5">
+        <div class="min-w-0 flex-1">
+          <h1 class="text-[13px] leading-tight font-medium">Save highlight</h1>
+          <div class="text-muted mt-0.5 flex items-center gap-1.5 text-[11.5px]">
+            <span data-status-dot class="bg-muted size-[7px] flex-none rounded-full"></span>
+            <span data-status-text class="truncate">Reading selection…</span>
+          </div>
+        </div>
+        <button data-settings class="icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <div class="flex flex-col gap-3 overflow-y-auto p-4">
+        <label class="block">
+          <span class="field-label">Quote</span>
+          <textarea
+            id="quote-text"
+            class="input resize-y text-[12.5px] leading-relaxed"
+            rows="7"
+            placeholder="Highlight text on the page, then reopen this"
+          ></textarea>
+        </label>
+
+        <p id="quote-hint" class="text-muted text-[11.5px] leading-relaxed" hidden>
+          Chrome does not share the selected text in its built-in PDF viewer, so copy the passage (<code
+            class="code"
+            >Ctrl</code
+          >+<code class="code">C</code>) and paste it above.
+        </p>
+
+        <p id="quote-section-row" class="text-muted flex items-start gap-1.5 text-[11.5px]" hidden>
+          <svg class="mt-px size-4 flex-none fill-current" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
+            />
+          </svg>
+          <span> Links back to <span id="quote-section" class="text-fg font-medium"></span> </span>
+        </p>
+
+        <div class="border-line bg-surface rounded-card border px-3 py-2.5">
+          <span class="field-label mb-1">Goes to</span>
+          <span id="quote-target" class="block text-[12.5px] break-words">Looking for this paper…</span>
+        </div>
+      </div>
+
+      <footer class="border-line relative border-t px-4 py-3">
+        <div data-notice class="notice" hidden>
+          <span data-notice-text class="flex-1"></span>
+          <button data-notice-close class="notice-close" title="Dismiss" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <button id="quote-save" class="btn btn-primary flex-1">
+            <span id="quote-save-label">Save quote</span>
+          </button>
+          <button id="quote-clip" class="btn btn-ghost">Clip page</button>
+        </div>
+      </footer>
+    </section>
+
     <!-- Saved ----------------------------------------------------------- -->
     <section data-screen="done" hidden>
       <div class="px-7 pt-9 pb-10 text-center">
@@ -160,7 +232,7 @@
             d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
           />
         </svg>
-        <h1 class="mb-1.5 text-[15px] font-medium">Saved to Notion</h1>
+        <h1 id="done-heading" class="mb-1.5 text-[15px] font-medium">Saved to Notion</h1>
         <p id="done-title" class="text-muted mb-5 max-h-[60px] overflow-hidden text-[12.5px] break-words"></p>
         <div class="flex justify-center gap-2">
           <button id="open-page" class="btn btn-primary">Open in Notion</button>

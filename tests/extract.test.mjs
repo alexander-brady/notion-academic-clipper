@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 
-import { extractPageMetadata } from '../src/lib/extract.js';
+import { extractPageMetadata, extractSelection } from '../src/lib/extract.js';
 
 /**
  * extractPageMetadata is written to be injected into a page, so it reads the
@@ -257,4 +257,79 @@ test('an empty page still returns the full result shape', () => {
   assert.deepEqual(m.authors, []);
   assert.equal(m.year, null);
   assert.equal(m.url, 'https://example.org/');
+});
+
+/* ------------------------------------------------------------------ */
+/* Selections                                                          */
+/* ------------------------------------------------------------------ */
+
+/** Select the contents of one element, the way a reader drags over a sentence. */
+function selectionFrom(html, selector, url = 'https://example.org/paper') {
+  const dom = new JSDOM(html, { url });
+  const { window } = dom;
+  const saved = { document: global.document, window: global.window, Node: global.Node };
+
+  global.document = window.document;
+  global.window = window;
+  global.Node = window.Node;
+  Object.defineProperty(global, 'location', { value: window.location, configurable: true, writable: true });
+
+  const range = window.document.createRange();
+  range.selectNodeContents(window.document.querySelector(selector));
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    return extractSelection();
+  } finally {
+    Object.assign(global, saved);
+  }
+}
+
+const ARTICLE = `<!doctype html><html><head><title>Paper</title></head><body>
+  <h1>A Study of Something</h1>
+  <p id="lead">Lead paragraph.</p>
+  <h2>Methods</h2>
+  <p id="methods">We measured the thing carefully.</p>
+  <h2>Results</h2>
+  <p id="results">The thing was measured.</p>
+</body></html>`;
+
+test('a selection reports its text and the heading above it', () => {
+  const s = selectionFrom(ARTICLE, '#methods');
+  assert.equal(s.text, 'We measured the thing carefully.');
+  assert.equal(s.section, 'Methods');
+  assert.equal(s.href, 'https://example.org/paper');
+});
+
+test('the nearest preceding heading wins, not the first or the last', () => {
+  assert.equal(selectionFrom(ARTICLE, '#results').section, 'Results');
+  assert.equal(selectionFrom(ARTICLE, '#lead').section, 'A Study of Something');
+});
+
+test('a page with no headings still yields the passage', () => {
+  const s = selectionFrom('<html><body><p id="p">Just text.</p></body></html>', '#p');
+  assert.equal(s.text, 'Just text.');
+  assert.equal(s.section, '');
+});
+
+test('with nothing selected the result is empty but well-formed', () => {
+  const dom = new JSDOM('<p>nothing selected</p>', { url: 'https://example.org/x' });
+  const saved = { document: global.document, window: global.window };
+  global.document = dom.window.document;
+  global.window = dom.window;
+  Object.defineProperty(global, 'location', {
+    value: dom.window.location,
+    configurable: true,
+    writable: true
+  });
+  try {
+    const s = extractSelection();
+    assert.equal(s.text, '');
+    assert.equal(s.section, '');
+    assert.equal(s.href, 'https://example.org/x');
+  } finally {
+    Object.assign(global, saved);
+  }
 });
