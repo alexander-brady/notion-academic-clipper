@@ -7,10 +7,18 @@
   <body class="w-[380px]">
     <!-- Not connected --------------------------------------------------- -->
     <section data-screen="setup" hidden>
-      <div class="px-6 pt-[30px] pb-[34px] text-center">
-        <div class="text-3xl">🔗</div>
-        <h1 class="mt-2.5 mb-1.5 text-[15px] font-semibold">Connect to Notion</h1>
-        <p class="text-muted mb-3.5 text-[12.5px]">
+      <div class="px-7 pt-9 pb-10 text-center">
+        <div
+          class="bg-accent-soft text-accent mx-auto mb-4 flex size-12 items-center justify-center rounded-full"
+        >
+          <svg class="size-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
+            />
+          </svg>
+        </div>
+        <h1 class="mb-1.5 text-[15px] font-medium">Connect to Notion</h1>
+        <p class="text-muted mb-5 text-[12.5px] leading-relaxed">
           Add your integration token and share a database with it to start clipping.
         </p>
         <button id="open-options" class="btn btn-primary">Open setup</button>
@@ -18,28 +26,37 @@
     </section>
 
     <!-- Main clip form -------------------------------------------------- -->
-    <section data-screen="clip" class="flex max-h-[580px] flex-col" hidden>
-      <header class="border-line flex items-center justify-between gap-2 border-b px-3 py-2.5">
-        <div class="text-muted flex min-w-0 items-center gap-[7px] text-xs">
-          <span id="status-dot" class="bg-muted size-[7px] flex-none rounded-full"></span>
-          <span id="source-line" class="truncate">Reading page…</span>
+    <section data-screen="clip" class="flex max-h-[584px] flex-col" hidden>
+      <header class="border-line flex items-center gap-2 border-b px-4 py-2.5">
+        <div class="min-w-0 flex-1">
+          <h1 class="text-[13px] leading-tight font-medium">Clip to Notion</h1>
+          <div class="text-muted mt-0.5 flex items-center gap-1.5 text-[11.5px]">
+            <span id="status-dot" class="bg-muted size-[7px] flex-none rounded-full"></span>
+            <span id="source-line" class="truncate">Reading page…</span>
+          </div>
         </div>
-        <button id="settings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+        <button id="settings" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"
+            />
+          </svg>
+        </button>
       </header>
 
-      <div class="flex flex-col gap-2.5 overflow-y-auto p-3">
+      <div class="flex flex-col gap-3 overflow-y-auto p-4">
         <!-- Not a <label>: it contains a button, and a label would forward the
              click to the select. -->
         <div>
           <span class="field-label" id="database-label">Database</span>
-          <div class="flex items-center gap-1.5">
-            <select
-              id="database"
-              class="input cursor-pointer appearance-none"
-              aria-labelledby="database-label"
-            ></select>
+          <div class="flex items-center gap-1">
+            <select id="database" class="select min-w-0 flex-1" aria-labelledby="database-label"></select>
             <button id="reload-dbs" class="icon-btn" title="Reload databases" aria-label="Reload databases">
-              ⟳
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                />
+              </svg>
             </button>
           </div>
         </div>
@@ -49,48 +66,58 @@
           <textarea id="title" class="input resize-y" rows="2" placeholder="Page title"></textarea>
         </label>
 
-        <label class="block">
-          <span class="field-label">URL</span>
-          <input id="url" class="input" type="url" />
-        </label>
+        <!-- Everything below is right far more often than not, so it stays
+             folded away; the summary carries enough to spot a bad match. -->
+        <details class="disclosure" id="details-box">
+          <summary>
+            <span class="flex-1">More details</span>
+            <span class="badge" id="details-hint"></span>
+          </summary>
+          <div class="disclosure-body flex flex-col gap-3">
+            <label class="block">
+              <span class="field-label">URL</span>
+              <input id="url" class="input" type="url" />
+            </label>
 
-        <div class="grid grid-cols-[1fr_88px] gap-2.5">
-          <label class="block">
-            <span class="field-label">DOI</span>
-            <input id="doi" class="input" placeholder="10.xxxx/xxxxx" />
-          </label>
-          <label class="block">
-            <span class="field-label">Year</span>
-            <input id="year" class="input" inputmode="numeric" placeholder="2024" />
-          </label>
-        </div>
+            <div class="grid grid-cols-[1fr_92px] gap-3">
+              <label class="block">
+                <span class="field-label">DOI</span>
+                <input id="doi" class="input" placeholder="10.xxxx/xxxxx" />
+              </label>
+              <label class="block">
+                <span class="field-label">Year</span>
+                <input id="year" class="input" inputmode="numeric" placeholder="2024" />
+              </label>
+            </div>
 
-        <label class="block">
-          <span class="field-label">
-            Authors <span class="font-normal normal-case opacity-75">comma separated</span>
-          </span>
-          <input id="authors" class="input" placeholder="Jane Doe, Richard Roe" />
-        </label>
+            <label class="block">
+              <span class="field-label">Authors <span class="opacity-75">— comma separated</span></span>
+              <input id="authors" class="input" placeholder="Jane Doe, Richard Roe" />
+            </label>
 
-        <label class="block">
-          <span class="field-label">Journal / venue</span>
-          <input id="journal" class="input" />
-        </label>
+            <label class="block">
+              <span class="field-label">Journal / venue</span>
+              <input id="journal" class="input" />
+            </label>
+          </div>
+        </details>
 
         <details class="disclosure" id="bibtex-box">
           <summary>
             <span class="flex-1">BibTeX</span>
             <span class="badge" id="bibtex-source">…</span>
           </summary>
-          <textarea
-            id="bibtex"
-            class="input resize-y font-mono text-[11.5px]"
-            rows="9"
-            spellcheck="false"
-          ></textarea>
-          <div class="flex justify-end gap-1.5">
-            <button id="copy-bibtex" class="btn btn-ghost btn-sm">Copy</button>
-            <button id="refetch-bibtex" class="btn btn-ghost btn-sm">Re-fetch from DOI</button>
+          <div class="disclosure-body">
+            <textarea
+              id="bibtex"
+              class="input resize-y font-mono text-[11.5px] leading-relaxed"
+              rows="8"
+              spellcheck="false"
+            ></textarea>
+            <div class="mt-2 flex justify-end gap-1.5">
+              <button id="copy-bibtex" class="btn btn-ghost btn-sm">Copy</button>
+              <button id="refetch-bibtex" class="btn btn-ghost btn-sm">Re-fetch from DOI</button>
+            </div>
           </div>
         </details>
 
@@ -99,14 +126,26 @@
             <span class="flex-1">Field mapping</span>
             <span class="badge" id="mapping-count"></span>
           </summary>
-          <p class="text-muted text-[11.5px]">Where each clipped value is written in this database.</p>
-          <div id="mapping"></div>
+          <div class="disclosure-body">
+            <p class="text-muted mb-1 text-[11.5px]">Where each clipped value is written in this database.</p>
+            <div id="mapping"></div>
+          </div>
         </details>
-
-        <div id="notice" hidden></div>
       </div>
 
-      <footer class="border-line border-t px-3 py-2.5">
+      <footer class="border-line relative border-t px-4 py-3">
+        <!-- Floats above the footer, over the form, so it cannot be scrolled
+             past unnoticed. -->
+        <div id="notice" class="notice" hidden>
+          <span id="notice-text" class="flex-1"></span>
+          <button id="notice-close" class="notice-close" title="Dismiss" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+              />
+            </svg>
+          </button>
+        </div>
         <button id="save" class="btn btn-primary w-full">
           <span id="save-label">Save to Notion</span>
         </button>
@@ -115,14 +154,15 @@
 
     <!-- Saved ----------------------------------------------------------- -->
     <section data-screen="done" hidden>
-      <div class="px-6 pt-[30px] pb-[34px] text-center">
-        <div class="text-3xl">✅</div>
-        <h1 class="mt-2.5 mb-1.5 text-[15px] font-semibold">Saved to Notion</h1>
-        <p
-          id="done-title"
-          class="text-fg max-h-[60px] overflow-hidden text-[12.5px] font-semibold break-words"
-        ></p>
-        <div class="mt-3.5 flex justify-center gap-1.5">
+      <div class="px-7 pt-9 pb-10 text-center">
+        <svg class="text-ok mx-auto mb-4 size-12 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+          />
+        </svg>
+        <h1 class="mb-1.5 text-[15px] font-medium">Saved to Notion</h1>
+        <p id="done-title" class="text-muted mb-5 max-h-[60px] overflow-hidden text-[12.5px] break-words"></p>
+        <div class="flex justify-center gap-2">
           <button id="open-page" class="btn btn-primary">Open in Notion</button>
           <button id="clip-again" class="btn btn-ghost">Back</button>
         </div>

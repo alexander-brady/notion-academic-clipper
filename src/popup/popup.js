@@ -52,22 +52,27 @@ function setStatus(text, kind = '') {
   $('status-dot').className = `size-[7px] flex-none rounded-full ${DOT[kind] ?? DOT['']}`;
 }
 
-const NOTICE = {
-  '': 'border-line bg-sunken text-muted',
-  error: 'border-danger text-danger bg-transparent',
-  warn: 'border-warn text-warn bg-transparent'
-};
+const NOTICE = { '': '', error: 'notice-error', warn: 'notice-warn' };
 
 function notice(message, kind = '') {
   const el = $('notice');
+  $('notice-text').textContent = message || '';
   if (!message) {
     el.hidden = true;
-    el.textContent = '';
     return;
   }
+  el.className = `notice ${NOTICE[kind] ?? ''}`.trimEnd();
   el.hidden = false;
-  el.className = `rounded-control border px-2.5 py-2 text-xs ${NOTICE[kind] ?? NOTICE['']}`;
-  el.textContent = message;
+}
+
+/**
+ * The folded-away fields still matter, so the summary line carries the two
+ * that decide whether the match is right.
+ */
+function renderDetailsHint() {
+  const doi = $('doi').value.trim();
+  const year = $('year').value.trim();
+  $('details-hint').textContent = [doi || 'no DOI', year].filter(Boolean).join(' · ');
 }
 
 /** Fields the user has typed in are never overwritten by late-arriving data. */
@@ -80,6 +85,7 @@ function setValue(id, value) {
 for (const id of ['title', 'url', 'doi', 'year', 'authors', 'journal', 'bibtex']) {
   $(id).addEventListener('input', (e) => {
     e.target.dataset.dirty = '1';
+    renderDetailsHint();
   });
 }
 
@@ -155,6 +161,7 @@ async function loadPage() {
   setValue('year', meta.year || '');
   setValue('authors', (meta.authors || []).join(', '));
   setValue('journal', meta.journal);
+  renderDetailsHint();
 
   if (scrape.limited) {
     notice(
@@ -192,6 +199,7 @@ async function loadBibtex() {
     setValue('authors', (e.authors || []).join(', '));
     setValue('journal', e.journal || '');
     setValue('year', e.year || '');
+    renderDetailsHint();
 
     $('bibtex-source').textContent = res.source;
     const resolved = res.source !== 'page metadata';
@@ -269,14 +277,14 @@ function renderMapping() {
     if (!compatible.length && !current) continue;
 
     const row = document.createElement('div');
-    row.className = 'mt-1.5 grid grid-cols-[96px_1fr] items-center gap-2';
+    row.className = 'mt-2 grid grid-cols-[92px_1fr] items-center gap-2';
 
     const label = document.createElement('span');
-    label.className = 'text-muted text-xs';
+    label.className = 'text-muted text-[11.5px]';
     label.textContent = field.label;
 
     const select = document.createElement('select');
-    select.className = 'input cursor-pointer px-1.5 py-[5px] text-xs';
+    select.className = 'select py-[5px] pr-7 pl-2 text-[11.5px]';
 
     const skip = document.createElement('option');
     skip.value = '';
@@ -444,6 +452,8 @@ $('copy-bibtex').addEventListener('click', async () => {
     btn.textContent = 'Copy';
   }, 1200);
 });
+
+$('notice-close').addEventListener('click', () => notice(''));
 
 $('save').addEventListener('click', save);
 $('settings').addEventListener('click', () => chrome.runtime.openOptionsPage());

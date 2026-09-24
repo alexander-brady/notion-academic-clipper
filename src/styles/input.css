@@ -5,53 +5,68 @@
 @source '../options/*.{html,js}';
 
 /*
- * Design tokens. Every colour is defined once here and flipped for dark mode
- * below, so no component needs a `dark:` variant for its own palette.
+ * Design tokens, taken from Google's Material palette so the extension sits
+ * comfortably inside Chrome's own UI.
+ *
+ * Light only, on purpose: the popup is a small floating surface drawn over
+ * whatever page is behind it, and a bright card reads better there than a dark
+ * one. Every colour is defined once here.
  */
 @theme {
   --color-bg: #ffffff;
-  --color-sunken: #f7f7f5;
-  --color-fg: #1f1f1e;
-  --color-muted: #6b6b6b;
-  --color-line: #e3e2df;
-  --color-line-strong: #d0cfcb;
-  --color-accent: #2f6fe4;
+  --color-surface: #f8f9fa;
+  --color-sunken: #f1f3f4;
+  --color-fg: #202124;
+  --color-muted: #5f6368;
+  --color-line: #dadce0;
+  --color-line-strong: #bdc1c6;
+  --color-accent: #1a73e8;
+  --color-accent-hover: #1b66c9;
+  --color-accent-soft: #e8f0fe;
   --color-accent-fg: #ffffff;
-  --color-danger: #c0392b;
-  --color-warn: #a07414;
-  --color-ok: #1a8a4a;
+  --color-danger: #d93025;
+  --color-danger-soft: #fce8e6;
+  --color-warn: #b06000;
+  --color-warn-soft: #feefe3;
+  --color-ok: #188038;
 
-  --radius-control: 7px;
+  --radius-control: 8px;
+  --radius-card: 12px;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --font-sans: 'Google Sans Text', 'Google Sans', Roboto, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* Google's elevation-1 shadow. */
+  --shadow-pop: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-bg: #1f1f1f;
-    --color-sunken: #2a2a2a;
-    --color-fg: #ededec;
-    --color-muted: #9b9b9b;
-    --color-line: #3a3a3a;
-    --color-line-strong: #4a4a4a;
-    --color-accent: #5b8def;
-    --color-accent-fg: #0d1117;
-    --color-danger: #ff7a6b;
-    --color-warn: #e3bb63;
-    --color-ok: #4ad07f;
-  }
-}
-
-/* The options page is a full page; the popup sizes itself. */
 @layer base {
   body {
-    @apply bg-bg text-fg font-sans;
+    @apply bg-bg text-fg font-sans text-[13px];
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Replace the default disclosure triangle with a rotating chevron. */
+  /* Replaced by a rotating chevron on `.disclosure`. */
   summary::-webkit-details-marker {
     display: none;
+  }
+
+  /*
+   * A thin overlay-style scrollbar. Closed, the popup fits without one; this
+   * keeps the expanded state from jumping sideways by 15px when it appears.
+   */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-line rounded;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-line-strong;
   }
 }
 
@@ -62,92 +77,187 @@
  */
 @layer components {
   .input {
-    @apply border-line-strong bg-bg text-fg rounded-control w-full border px-2 py-[7px] font-[inherit] text-[13px];
+    @apply border-line-strong bg-bg text-fg rounded-control w-full border px-3 py-[9px] font-[inherit] text-[13px];
+  }
+  .input:hover {
+    @apply border-muted;
   }
   .input:focus {
-    @apply border-accent outline-accent/45 outline-2 -outline-offset-1;
+    @apply border-accent outline-accent outline-2 -outline-offset-1;
+  }
+  .input::placeholder {
+    @apply text-muted/70;
+  }
+
+  /*
+   * A select styled to look like one: native appearance is dropped so the
+   * control matches the text fields, and the chevron is drawn back on so it
+   * never reads as an editable box.
+   */
+  .select {
+    @apply border-line-strong bg-bg text-fg rounded-control w-full cursor-pointer appearance-none border py-[9px] pr-9 pl-3 text-[13px];
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 20px 20px;
+  }
+  .select:hover {
+    @apply border-muted;
+  }
+  .select:focus {
+    @apply border-accent outline-accent outline-2 -outline-offset-1;
+  }
+  .select:disabled {
+    @apply text-muted bg-surface cursor-default;
+  }
+  /* While the option list is dropped down, square off the edge it hangs from. */
+  .select:open {
+    @apply rounded-b-none;
   }
 
   .btn {
-    @apply bg-sunken text-fg rounded-control cursor-pointer border border-transparent px-3 py-2 text-[13px] font-semibold;
-  }
-  .btn:hover {
-    @apply brightness-97;
+    @apply text-fg inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-transparent px-4 py-[9px] text-[13px] font-medium tracking-[0.01em] transition-colors duration-100 select-none;
   }
   .btn:disabled {
-    @apply cursor-default opacity-55 brightness-100;
+    @apply cursor-default opacity-50;
   }
 
   .btn-primary {
     @apply bg-accent text-accent-fg;
   }
-  .btn-ghost {
-    @apply border-line-strong text-muted bg-transparent;
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-accent-hover shadow-pop;
   }
+
+  .btn-ghost {
+    @apply border-line-strong text-accent bg-transparent;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    @apply bg-accent-soft;
+  }
+
   .btn-sm {
-    @apply px-[9px] py-[5px] text-xs font-medium;
+    @apply px-3 py-[5px] text-xs;
   }
 
   .icon-btn {
-    @apply border-line-strong text-muted rounded-control h-[30px] w-[30px] flex-none cursor-pointer border bg-transparent text-sm leading-none;
+    @apply text-muted inline-flex size-9 flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0;
   }
   .icon-btn:hover {
-    @apply text-fg bg-sunken;
+    @apply text-fg bg-black/5;
+  }
+  .icon-btn svg {
+    @apply size-5 fill-current;
   }
 
   .field-label {
-    @apply text-muted mb-1 block text-[11px] font-semibold tracking-[0.03em] uppercase;
+    @apply text-muted mb-1.5 block text-[11.5px] font-medium;
   }
 
   .badge {
-    @apply text-muted bg-bg border-line rounded-full border px-[7px] py-px text-[10.5px] font-medium whitespace-nowrap;
+    @apply text-muted bg-sunken inline-block max-w-[170px] truncate rounded-full px-2 py-px text-[11px] font-medium;
   }
 
+  /*
+   * Collapsible section: a card whose header is the whole clickable row.
+   * The corners are rounded on the summary rather than clipped with
+   * `overflow: hidden` on the <details>: that stopped the sections expanding
+   * in Chrome, and styling the summary gets the same look without putting a
+   * non-visible overflow on the disclosure element.
+   */
   .disclosure {
-    @apply border-line bg-sunken rounded-control border px-[10px] py-2;
+    @apply border-line bg-bg rounded-card border;
   }
   .disclosure > summary {
-    @apply flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold;
+    @apply rounded-card flex cursor-pointer list-none items-center gap-2 px-3 py-[11px] text-[13px] font-medium;
   }
-  .disclosure > summary::before {
-    content: '›';
-    @apply text-muted mr-1.5 inline-block transition-transform duration-100;
+  .disclosure > summary:hover {
+    @apply bg-surface;
   }
-  .disclosure[open] > summary::before {
-    @apply rotate-90;
+  .disclosure > summary::after {
+    content: '';
+    @apply text-muted size-5 flex-none transition-transform duration-150;
+    background-color: currentColor;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/%3E%3C/svg%3E");
+    /* Unprefixed `mask-*` only landed in Chrome 120. */
+    -webkit-mask: var(--chevron) no-repeat center / 20px 20px;
+    mask: var(--chevron) no-repeat center / 20px 20px;
   }
-  .disclosure > *:not(summary) {
-    @apply mt-2;
+  .disclosure[open] > summary {
+    @apply border-line rounded-b-none border-b;
+  }
+  .disclosure[open] > summary::after {
+    @apply rotate-180;
+  }
+  .disclosure-body {
+    @apply px-3 pt-3 pb-3.5;
+  }
+
+  /*
+   * Errors and warnings float above the footer rather than sitting in the
+   * scrolling column, where they were easy to scroll past and miss. They stay
+   * until dismissed, so the close button is part of the component.
+   */
+  .notice {
+    @apply border-line bg-bg text-fg rounded-card shadow-pop absolute inset-x-3 bottom-full z-10 mb-2 flex items-start gap-2 border px-3 py-2.5 text-xs leading-snug;
+  }
+  .notice-error {
+    @apply border-danger/30 bg-danger-soft text-danger;
+  }
+  .notice-warn {
+    @apply border-warn/30 bg-warn-soft text-warn;
+  }
+  .notice-close {
+    @apply -my-0.5 -mr-1 inline-flex size-6 flex-none cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-current opacity-60;
+  }
+  .notice-close:hover {
+    @apply bg-black/5 opacity-100;
+  }
+  .notice-close svg {
+    @apply size-4 fill-current;
   }
 
   /* Options page ---------------------------------------------------- */
   .card {
-    @apply bg-bg border-line mb-4 rounded-[9px] border px-5 py-[18px];
+    @apply bg-bg border-line rounded-card mb-4 border px-6 py-5;
   }
   .card-title {
-    @apply mb-2.5 text-[15px] font-semibold;
+    @apply mb-3 text-[15px] font-medium;
   }
   .link {
     @apply text-accent;
   }
+  .link:hover {
+    @apply underline;
+  }
   .code {
-    @apply bg-sunken border-line rounded border px-[5px] py-px font-mono text-[0.9em];
+    @apply bg-sunken rounded px-[5px] py-px font-mono text-[0.9em];
   }
   .status {
-    @apply text-muted mt-2.5 min-h-[19px] text-[13px];
+    @apply text-muted mt-3 min-h-[19px] text-[13px];
   }
   .check {
-    @apply mb-2.5 flex cursor-pointer items-center gap-[9px];
+    @apply mb-3 flex cursor-pointer items-center gap-2.5;
   }
   .checkbox {
-    @apply accent-accent size-[15px];
+    @apply accent-accent size-4;
   }
   .cell {
-    @apply border-line border-b p-1.5 text-left;
+    @apply border-line border-b p-2 text-left;
   }
 }
 
-/* Spinner for the "reload databases" button. */
+/*
+ * Spinner for the "reload databases" button. The keyframes are declared here
+ * rather than relying on Tailwind's, which are only emitted when `animate-spin`
+ * itself appears in the markup.
+ */
+@keyframes clipper-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @utility spin {
-  animation: spin 0.8s linear infinite;
+  animation: clipper-spin 0.8s linear infinite;
 }

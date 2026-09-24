@@ -133,8 +133,10 @@ when you are changing styles.
 repo and hitting **Load unpacked** works without running a build first. Re-run
 `npm run build` after editing `input.css`.
 
-Colours are defined once as `@theme` tokens and redefined under
-`prefers-color-scheme: dark`, so no component carries a `dark:` variant of its own. Controls
+Colours are Google's Material palette, defined once as `@theme` tokens, so no component
+spells out a hex value. The UI is light only on purpose: the popup is a small floating
+surface drawn over whatever page is behind it, and a bright card reads better there than a
+dark one. Controls
 that repeat across both pages _and_ get created from JavaScript (`popup.js` builds the
 database and field-mapping selects) are component classes — `.input`, `.btn`, `.badge` — so
 a long utility string is not duplicated in two places and left to drift. Everything else is
