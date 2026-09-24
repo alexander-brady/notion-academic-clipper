@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Academic Clipper for Notion",
+  "version": "1.0.0",
+  "description": "Clip academic papers to a Notion database with title, URL, DOI and BibTeX.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://api.notion.com/*",
+    "https://api.crossref.org/*",
+    "https://doi.org/*",
+    "https://dx.doi.org/*",
+    "https://data.crossref.org/*",
+    "https://data.datacite.org/*",
+    "https://api.datacite.org/*",
+    "https://export.arxiv.org/*",
+    "https://eutils.ncbi.nlm.nih.gov/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "Clip to Notion",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "src/options/index.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Ctrl+Shift+S", "mac": "Command+Shift+S" },
+      "description": "Clip the current page to Notion"
+    }
+  }
+}

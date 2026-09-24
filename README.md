@@ -1,0 +1,156 @@
+# Academic Clipper for Notion
+
+A Notion Web Clipper for papers. Click the toolbar button, confirm the database and
+title, and the page is saved to Notion — along with its **DOI** and a **BibTeX entry**
+resolved from Crossref, DataCite, arXiv or PubMed.
+
+```
+Title      Attention Is All You Need
+URL        https://arxiv.org/abs/1706.03762
+DOI        10.48550/arXiv.1706.03762
+Authors    Ashish Vaswani, Noam Shazeer, Niki Parmar, …
+Year       2017
+BibTeX     @misc{vaswani2017attention, … }
+```
+
+## Install
+
+1. Open `chrome://extensions` and turn on **Developer mode**.
+2. Click **Load unpacked** and select this folder.
+3. The setup page opens automatically. Follow the two steps below.
+
+### 1. Connect Notion
+
+Notion has no public "sign in with Notion" flow for an extension without a backend
+server, so this uses an **internal integration token**, which is the standard approach
+for a personal tool.
+
+1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations) → **New integration**
+   → type **Internal**.
+2. Copy the **Internal Integration Secret** (starts with `ntn_` or `secret_`).
+3. Paste it into the extension's setup page and click **Connect**.
+
+The token is kept in `chrome.storage.local` on this machine only. It is never synced
+and is only ever sent to `api.notion.com`.
+
+### 2. Share a database with the integration
+
+A fresh Notion integration can see nothing until you grant it access. Open the database
+you want to clip into → **•••** (top right) → **Connections** → **Connect to** → pick your
+integration. Repeat for every database you want to appear in the dropdown.
+
+## Suggested database schema
+
+Only a **title** property is required; everything else is written if a matching property
+exists and skipped if it doesn't.
+
+| Property     | Type                | Receives                         |
+| ------------ | ------------------- | -------------------------------- |
+| Title        | Title               | Paper title                      |
+| URL          | URL                 | Page address                     |
+| DOI          | Text                | Bare DOI (`10.1038/nature12373`) |
+| BibTeX       | Text                | Full entry                       |
+| Authors      | Multi-select / Text | Author list                      |
+| Year         | Number              | Publication year                 |
+| Journal      | Select / Text       | Journal or conference            |
+| Cite key     | Text                | `vaswani2017attention`           |
+| Date clipped | Date                | When you saved it                |
+
+Properties are matched to fields by name and type. Anything matched wrongly can be
+re-pointed under **Field mapping** in the popup, and the choice is remembered per
+database. Formula, rollup, status, people and relation properties are never written to.
+
+The page body always gets the BibTeX as a code block (plus the abstract, if found), so
+the full entry is there to copy even when a property truncates it.
+
+## How the BibTeX is found
+
+Sources are tried in order until one answers:
+
+1. **DOI** → Crossref `transform` endpoint, then `doi.org` content negotiation
+   (which covers DataCite, mEDRA, Zenodo and friends).
+2. **arXiv ID** → the DataCite DOI `10.48550/arXiv.<id>`, falling back to the arXiv API.
+3. **PMID** → NCBI E-utilities for the DOI, then step 1.
+4. **No identifier at all** → a Crossref title search, accepted only on a near-exact
+   title match so a fuzzy hit can't attach the wrong paper's citation.
+5. **Nothing found** → an entry built from the page's own metadata, marked as
+   _page metadata_ in the popup so you know it wasn't verified.
+
+The DOI itself is read from `citation_doi` and friends, Dublin Core tags, JSON-LD,
+the URL, `doi.org` links, then visible text — in that order.
+
+Entries are reformatted one field per line, HTML entities left behind by Crossref are
+decoded and re-escaped for LaTeX, page ranges are normalised to `--`, and cite keys are
+rewritten as `authorYearWord` (switchable in settings).
+
+## Using it
+
+- Click the toolbar icon, or press **Ctrl+Shift+S** (**⌘⇧S** on macOS).
+- Check the fields, then **Save to Notion**. **Ctrl/⌘+Enter** saves without reaching for
+  the mouse.
+- If the DOI or URL is already in the database you get a warning before saving.
+- Anything you type by hand is never overwritten by a late-arriving lookup.
+
+## Development
+
+```bash
+npm install       # only needed for the tooling below; the extension itself ships no deps
+npm run build     # compile Tailwind -> src/styles/app.css
+npm run dev       # same, in watch mode while editing styles
+npm test          # 59 unit tests: parsing, mapping, extraction (jsdom)
+npm run test:live # smoke test against the real Crossref/arXiv/PubMed endpoints
+npm run format    # Prettier over the whole project
+npm run zip       # build + package dist/notion-academic-clipper.zip
+```
+
+```
+manifest.json
+icons/                 generated by `npm run icons`
+src/
+  background.js        service worker: message router, does the network calls
+  lib/
+    extract.js         injected into the page to read metadata (meta tags, JSON-LD)
+    bib.js             DOI normalising, BibTeX fetching, parsing and formatting
+    notion.js          Notion REST client
+    mapping.js         field <-> property matching and payload building
+  popup/               the clip form
+  options/             setup and preferences
+  styles/
+    input.css          Tailwind source: design tokens + component classes
+    app.css            generated, committed so the folder loads unpacked as-is
+tests/
+tools/                 icon generator and zip packer
+```
+
+### Styling
+
+MV3's content security policy blocks Tailwind's CDN/JIT runtime, so the CSS is compiled
+ahead of time. **Only CSS is generated** — HTML and JS load straight from `src/`, so the
+usual loop is still edit → reload in `chrome://extensions`. Run `npm run dev` alongside it
+when you are changing styles.
+
+`src/styles/app.css` is a build artifact but is committed on purpose, so that cloning the
+repo and hitting **Load unpacked** works without running a build first. Re-run
+`npm run build` after editing `input.css`.
+
+Colours are defined once as `@theme` tokens and redefined under
+`prefers-color-scheme: dark`, so no component carries a `dark:` variant of its own. Controls
+that repeat across both pages _and_ get created from JavaScript (`popup.js` builds the
+database and field-mapping selects) are component classes — `.input`, `.btn`, `.badge` — so
+a long utility string is not duplicated in two places and left to drift. Everything else is
+plain utilities in the markup.
+
+Prettier (with `prettier-plugin-tailwindcss` for class sorting) formats JS, HTML, CSS, JSON
+and Markdown; `npm run format:check` is the CI-friendly form.
+
+Saving runs in the service worker rather than the popup, so closing the popup mid-save
+doesn't cancel the request.
+
+## Limitations
+
+- Chrome can't inject scripts into `chrome://` pages, the Web Store, or the built-in PDF
+  viewer. On those the clipper falls back to the tab's title and URL, plus any DOI or
+  arXiv ID visible in the address.
+- Paywalled pages expose whatever metadata they expose; the DOI is usually still there,
+  which is enough to get the correct BibTeX.
+- The Notion API version is pinned to `2022-06-28`.

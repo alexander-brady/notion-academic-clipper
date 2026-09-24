@@ -1,0 +1,153 @@
+@import 'tailwindcss';
+
+/* The popup and the options page are scanned for class names. */
+@source '../popup/*.{html,js}';
+@source '../options/*.{html,js}';
+
+/*
+ * Design tokens. Every colour is defined once here and flipped for dark mode
+ * below, so no component needs a `dark:` variant for its own palette.
+ */
+@theme {
+  --color-bg: #ffffff;
+  --color-sunken: #f7f7f5;
+  --color-fg: #1f1f1e;
+  --color-muted: #6b6b6b;
+  --color-line: #e3e2df;
+  --color-line-strong: #d0cfcb;
+  --color-accent: #2f6fe4;
+  --color-accent-fg: #ffffff;
+  --color-danger: #c0392b;
+  --color-warn: #a07414;
+  --color-ok: #1a8a4a;
+
+  --radius-control: 7px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-bg: #1f1f1f;
+    --color-sunken: #2a2a2a;
+    --color-fg: #ededec;
+    --color-muted: #9b9b9b;
+    --color-line: #3a3a3a;
+    --color-line-strong: #4a4a4a;
+    --color-accent: #5b8def;
+    --color-accent-fg: #0d1117;
+    --color-danger: #ff7a6b;
+    --color-warn: #e3bb63;
+    --color-ok: #4ad07f;
+  }
+}
+
+/* The options page is a full page; the popup sizes itself. */
+@layer base {
+  body {
+    @apply bg-bg text-fg font-sans;
+  }
+
+  /* Replace the default disclosure triangle with a rotating chevron. */
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/*
+ * Component classes, for controls that repeat across both pages *and* are
+ * created from JavaScript (popup.js builds the database and mapping selects),
+ * where a long utility string would be duplicated and drift.
+ */
+@layer components {
+  .input {
+    @apply border-line-strong bg-bg text-fg rounded-control w-full border px-2 py-[7px] font-[inherit] text-[13px];
+  }
+  .input:focus {
+    @apply border-accent outline-accent/45 outline-2 -outline-offset-1;
+  }
+
+  .btn {
+    @apply bg-sunken text-fg rounded-control cursor-pointer border border-transparent px-3 py-2 text-[13px] font-semibold;
+  }
+  .btn:hover {
+    @apply brightness-97;
+  }
+  .btn:disabled {
+    @apply cursor-default opacity-55 brightness-100;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-accent-fg;
+  }
+  .btn-ghost {
+    @apply border-line-strong text-muted bg-transparent;
+  }
+  .btn-sm {
+    @apply px-[9px] py-[5px] text-xs font-medium;
+  }
+
+  .icon-btn {
+    @apply border-line-strong text-muted rounded-control h-[30px] w-[30px] flex-none cursor-pointer border bg-transparent text-sm leading-none;
+  }
+  .icon-btn:hover {
+    @apply text-fg bg-sunken;
+  }
+
+  .field-label {
+    @apply text-muted mb-1 block text-[11px] font-semibold tracking-[0.03em] uppercase;
+  }
+
+  .badge {
+    @apply text-muted bg-bg border-line rounded-full border px-[7px] py-px text-[10.5px] font-medium whitespace-nowrap;
+  }
+
+  .disclosure {
+    @apply border-line bg-sunken rounded-control border px-[10px] py-2;
+  }
+  .disclosure > summary {
+    @apply flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold;
+  }
+  .disclosure > summary::before {
+    content: '›';
+    @apply text-muted mr-1.5 inline-block transition-transform duration-100;
+  }
+  .disclosure[open] > summary::before {
+    @apply rotate-90;
+  }
+  .disclosure > *:not(summary) {
+    @apply mt-2;
+  }
+
+  /* Options page ---------------------------------------------------- */
+  .card {
+    @apply bg-bg border-line mb-4 rounded-[9px] border px-5 py-[18px];
+  }
+  .card-title {
+    @apply mb-2.5 text-[15px] font-semibold;
+  }
+  .link {
+    @apply text-accent;
+  }
+  .code {
+    @apply bg-sunken border-line rounded border px-[5px] py-px font-mono text-[0.9em];
+  }
+  .status {
+    @apply text-muted mt-2.5 min-h-[19px] text-[13px];
+  }
+  .check {
+    @apply mb-2.5 flex cursor-pointer items-center gap-[9px];
+  }
+  .checkbox {
+    @apply accent-accent size-[15px];
+  }
+  .cell {
+    @apply border-line border-b p-1.5 text-left;
+  }
+}
+
+/* Spinner for the "reload databases" button. */
+@utility spin {
+  animation: spin 0.8s linear infinite;
+}

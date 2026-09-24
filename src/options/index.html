@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Academic Clipper — Setup</title>
+    <link rel="stylesheet" href="../styles/app.css" />
+  </head>
+  <body class="bg-sunken px-5 pt-9 pb-16">
+    <main class="mx-auto max-w-[660px]">
+      <h1 class="mb-1 text-[22px] font-semibold">Academic Clipper for Notion</h1>
+      <p class="text-muted mb-6">
+        Clip papers to a Notion database with their title, URL, DOI and BibTeX entry.
+      </p>
+
+      <section class="card">
+        <h2 class="card-title">1. Connect your Notion workspace</h2>
+        <ol class="mb-4 list-decimal space-y-1.5 pl-5">
+          <li>
+            Open
+            <a class="link" href="https://www.notion.so/my-integrations" target="_blank" rel="noreferrer">
+              notion.so/my-integrations
+            </a>
+            and create a <strong>New integration</strong> of type <em>Internal</em>.
+          </li>
+          <li>Under <strong>Capabilities</strong>, keep read and insert content enabled.</li>
+          <li>
+            Copy the <strong>Internal Integration Secret</strong> (it starts with
+            <code class="code">ntn_</code> or <code class="code">secret_</code>) and paste it below.
+          </li>
+        </ol>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            id="token"
+            type="password"
+            class="input min-w-[220px] flex-1"
+            placeholder="ntn_..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="toggle-token" class="btn btn-ghost" type="button">Show</button>
+          <button id="connect" class="btn btn-primary" type="button">Connect</button>
+        </div>
+        <p id="token-status" class="status"></p>
+        <p class="text-muted mt-2.5 text-[12.5px]">
+          The token is stored with <code class="code">chrome.storage.local</code> on this computer only — it
+          is never synced or sent anywhere except api.notion.com.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">2. Share a database with the integration</h2>
+        <p class="mb-3">
+          Notion integrations start with access to nothing. Open the database you want to clip into, click
+          <strong>•••</strong> in the top right → <strong>Connections</strong> → <strong>Connect to</strong> →
+          pick your integration. Repeat for each database you want available.
+        </p>
+        <button id="refresh" class="btn btn-ghost" type="button">Check visible databases</button>
+        <ul id="db-list" class="mt-3"></ul>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">3. Database properties</h2>
+        <p class="mb-3">
+          Fields are matched to your database properties by name and type, and you can override the mapping in
+          the popup. A database gets the most out of the clipper with properties like these:
+        </p>
+        <table class="mb-3 w-full border-collapse text-[13px]">
+          <thead>
+            <tr class="text-muted text-[11px] tracking-[0.04em] uppercase">
+              <th class="border-line border-b p-1.5 text-left font-semibold">Property</th>
+              <th class="border-line border-b p-1.5 text-left font-semibold">Type</th>
+              <th class="border-line border-b p-1.5 text-left font-semibold">Gets</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cell font-semibold">Title</td>
+              <td class="cell">Title</td>
+              <td class="cell">Paper title</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">URL</td>
+              <td class="cell">URL</td>
+              <td class="cell">Page address</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">DOI</td>
+              <td class="cell">Text</td>
+              <td class="cell">Bare DOI, e.g. 10.1038/nature12373</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">BibTeX</td>
+              <td class="cell">Text</td>
+              <td class="cell">Full entry</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">Authors</td>
+              <td class="cell">Multi-select or Text</td>
+              <td class="cell">Author list</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">Year</td>
+              <td class="cell">Number</td>
+              <td class="cell">Publication year</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">Journal</td>
+              <td class="cell">Select or Text</td>
+              <td class="cell">Journal / conference</td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">Cite key</td>
+              <td class="cell">Text</td>
+              <td class="cell"><code class="code">doe2023attention</code></td>
+            </tr>
+            <tr>
+              <td class="cell font-semibold">Date clipped</td>
+              <td class="cell">Date</td>
+              <td class="cell">When you saved it</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="text-muted text-[12.5px]">
+          Only the title property is required. Anything missing is simply skipped.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Preferences</h2>
+        <label class="check"
+          ><input type="checkbox" id="pref-abstract" class="checkbox" /> Add the abstract to the page
+          body</label
+        >
+        <label class="check"
+          ><input type="checkbox" id="pref-bibtex-block" class="checkbox" /> Add the BibTeX as a code block in
+          the page body</label
+        >
+        <label class="check"
+          ><input type="checkbox" id="pref-citekey" class="checkbox" /> Rewrite cite keys as
+          <code class="code">authorYearWord</code></label
+        >
+        <label class="check"
+          ><input type="checkbox" id="pref-duplicates" class="checkbox" /> Warn when the DOI or URL is already
+          in the database</label
+        >
+        <label class="check gap-3">
+          Page icon
+          <input type="text" id="pref-icon" class="input w-16 flex-none p-1 text-center" maxlength="4" />
+        </label>
+        <p id="prefs-status" class="status"></p>
+      </section>
+
+      <section class="card border-danger/35">
+        <h2 class="card-title">Disconnect</h2>
+        <p class="mb-3">Removes the stored token, the saved field mappings and the last used database.</p>
+        <button id="disconnect" class="btn border-danger text-danger bg-transparent" type="button">
+          Disconnect from Notion
+        </button>
+      </section>
+    </main>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

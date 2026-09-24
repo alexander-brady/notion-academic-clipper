@@ -1,0 +1,24 @@
+{
+  "name": "notion-academic-clipper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome extension that clips academic papers to Notion with DOI and BibTeX.",
+  "type": "module",
+  "scripts": {
+    "build": "tailwindcss -i src/styles/input.css -o src/styles/app.css --minify",
+    "dev": "tailwindcss -i src/styles/input.css -o src/styles/app.css --watch",
+    "test": "node --test tests/",
+    "test:live": "node tests/live.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "icons": "node tools/make-icons.js icons",
+    "zip": "npm run build && node tools/zip.js"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "jsdom": "^24.1.3",
+    "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "tailwindcss": "^4.3.3"
+  }
+}
