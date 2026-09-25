@@ -47,24 +47,6 @@
       </header>
 
       <div class="flex flex-auto flex-col gap-3 overflow-y-auto p-4">
-        <!-- Not a <label>: it contains a button, and a label would forward the
-             click to the select. -->
-        <div>
-          <span class="field-label" id="database-label">Database</span>
-          <div class="flex items-center gap-1">
-            <select id="database" class="select min-w-0 flex-1" aria-labelledby="database-label">
-              <option>Loading databases…</option>
-            </select>
-            <button id="reload-dbs" class="icon-btn" title="Reload databases" aria-label="Reload databases">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
         <label class="block">
           <span class="field-label">Title</span>
           <textarea id="title" class="input resize-y" rows="2" placeholder="Page title"></textarea>
@@ -150,9 +132,32 @@
             </svg>
           </button>
         </div>
-        <button id="save" class="btn btn-primary w-full" disabled>
-          <span id="save-label">Save to Notion</span>
-        </button>
+        <!-- Which database this goes to is part of the save action rather than a
+             separate field: there is only ever one destination in play. -->
+        <div id="db-menu" class="menu" role="menu" hidden>
+          <div id="db-list"></div>
+          <div class="menu-sep"></div>
+          <button id="reload-dbs" class="menu-item text-muted" type="button">Reload databases</button>
+        </div>
+
+        <div class="flex">
+          <button id="save" class="btn btn-primary min-w-0 flex-1 rounded-r-none" disabled>
+            <span id="save-label" class="truncate">Save to Notion</span>
+          </button>
+          <button
+            id="db-toggle"
+            class="btn btn-primary ml-px w-9 flex-none rounded-l-none px-0"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            title="Choose a database"
+            aria-label="Choose a database"
+          >
+            <svg class="size-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 14l5-5 5 5z" />
+            </svg>
+          </button>
+        </div>
       </footer>
     </section>
 

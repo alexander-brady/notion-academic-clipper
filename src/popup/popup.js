@@ -7,6 +7,7 @@ const state = {
   meta: null,
   database: null,
   databases: [],
+  databaseId: '',
   map: {},
   bibtexSource: '',
   citeKey: '',
@@ -152,7 +153,7 @@ async function boot() {
 
   setStatus('Reading page…', 'busy');
   // Scrape and load the database schema at the same time.
-  const schemaLoad = loadDatabase($('database').value);
+  const schemaLoad = loadDatabase(state.databaseId);
   await loadPage();
   await schemaLoad;
   await checkDuplicate();
@@ -257,27 +258,62 @@ const splitAuthors = (s) =>
 /* ------------------------------------------------------------------ */
 
 function renderDatabases(selectedId) {
-  const select = $('database');
-  select.innerHTML = '';
+  const list = $('db-list');
+  list.replaceChildren();
 
   if (!state.databases.length) {
-    const opt = document.createElement('option');
-    opt.textContent = 'No databases available';
-    opt.value = '';
-    select.append(opt);
-    select.disabled = true;
+    state.databaseId = '';
+    renderSaveLabel();
     return;
   }
 
-  select.disabled = false;
-  for (const db of state.databases) {
-    const opt = document.createElement('option');
-    opt.value = db.id;
-    opt.textContent = `${db.icon ? db.icon + ' ' : ''}${db.title}`;
-    select.append(opt);
-  }
   const exists = state.databases.some((d) => d.id === selectedId);
-  select.value = exists ? selectedId : state.databases[0].id;
+  state.databaseId = exists ? selectedId : state.databases[0].id;
+
+  for (const db of state.databases) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'menu-item';
+    item.dataset.id = db.id;
+    item.setAttribute('role', 'menuitemradio');
+    item.setAttribute('aria-checked', String(db.id === state.databaseId));
+    item.textContent = `${db.icon ? db.icon + ' ' : ''}${db.title}`;
+    item.addEventListener('click', () => chooseDatabase(db.id));
+    list.append(item);
+  }
+  renderSaveLabel();
+}
+
+/** The button states where the clip is going, so the choice needs no label. */
+function renderSaveLabel() {
+  const db = state.databases.find((d) => d.id === state.databaseId);
+  if (!db) {
+    $('save-label').textContent = state.databases.length ? 'Save to Notion' : 'No database available';
+    return;
+  }
+  $('save-label').textContent = state.duplicate ? `Save anyway to ${db.title}` : `Save to ${db.title}`;
+}
+
+function toggleMenu(open) {
+  const menu = $('db-menu');
+  const next = open === undefined ? menu.hidden : open;
+  menu.hidden = !next;
+  $('db-toggle').setAttribute('aria-expanded', String(next));
+}
+
+async function chooseDatabase(id) {
+  toggleMenu(false);
+  if (id === state.databaseId) return;
+
+  state.databaseId = id;
+  state.duplicate = null;
+  for (const item of $('db-list').children) {
+    item.setAttribute('aria-checked', String(item.dataset.id === id));
+  }
+  renderSaveLabel();
+  clearNotice();
+  await loadDatabase(id);
+  await checkDuplicate();
 }
 
 async function loadDatabase(databaseId) {
@@ -359,7 +395,7 @@ function renderMappingCount(count) {
 function validate() {
   const hasTitle = Boolean(state.map.title);
   const saveBtn = $('save');
-  saveBtn.disabled = state.saving || !hasTitle || !$('database').value;
+  saveBtn.disabled = state.saving || !hasTitle || !state.databaseId;
 
   if (state.database && !hasTitle) {
     notice('This database has no title property mapped, so a page cannot be created.', 'error');
@@ -373,7 +409,7 @@ function validate() {
 
 async function checkDuplicate() {
   state.duplicate = null;
-  const databaseId = $('database').value;
+  const databaseId = state.databaseId;
   if (!databaseId || !state.database) return;
 
   try {
@@ -386,7 +422,7 @@ async function checkDuplicate() {
     if (duplicate) {
       state.duplicate = duplicate;
       notice('This paper looks like it is already in the database.', 'warn');
-      $('save-label').textContent = 'Save anyway';
+      renderSaveLabel();
     }
   } catch {
     /* advisory only */
@@ -426,7 +462,7 @@ async function save() {
 
   try {
     const { page } = await send('save', {
-      databaseId: $('database').value,
+      databaseId: state.databaseId,
       values: collectValues(),
       map: state.map
     });
@@ -435,7 +471,7 @@ async function save() {
   } catch (e) {
     setStatus('Save failed', 'warn');
     notice(e.message, 'error');
-    $('save-label').textContent = 'Try again';
+    renderSaveLabel();
   } finally {
     state.saving = false;
     $('save').disabled = false;
@@ -446,25 +482,26 @@ async function save() {
 /* Events                                                              */
 /* ------------------------------------------------------------------ */
 
-$('database').addEventListener('change', async () => {
-  $('save-label').textContent = 'Save to Notion';
-  clearNotice();
-  await loadDatabase($('database').value);
-  await checkDuplicate();
+$('db-toggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleMenu();
 });
 
-$('reload-dbs').addEventListener('click', async () => {
+$('reload-dbs').addEventListener('click', async (e) => {
+  e.stopPropagation();
   const btn = $('reload-dbs');
-  btn.classList.add('spin');
+  btn.disabled = true;
+  btn.textContent = 'Reloading…';
   try {
     const { databases } = await send('refreshDatabases', {});
     state.databases = databases;
-    renderDatabases($('database').value);
-    await loadDatabase($('database').value);
-  } catch (e) {
-    notice(e.message, 'error');
+    renderDatabases(state.databaseId);
+    await loadDatabase(state.databaseId);
+  } catch (err) {
+    notice(err.message, 'error');
   } finally {
-    btn.classList.remove('spin');
+    btn.disabled = false;
+    btn.textContent = 'Reload databases';
   }
 });
 
@@ -492,14 +529,21 @@ $('open-page').addEventListener('click', (e) => {
 });
 
 $('clip-again').addEventListener('click', () => {
-  $('save-label').textContent = 'Save to Notion';
+  state.duplicate = null;
+  renderSaveLabel();
   showScreen('clip');
 });
 
 $('settings').addEventListener('click', () => chrome.runtime.openOptionsPage());
 $('notice-close').addEventListener('click', clearNotice);
 
+// Dismiss the database menu the way menus are normally dismissed.
+document.addEventListener('click', (e) => {
+  if (!$('db-menu').hidden && !e.target.closest('#db-menu')) toggleMenu(false);
+});
+
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('db-menu').hidden) return toggleMenu(false);
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') save();
 });
 

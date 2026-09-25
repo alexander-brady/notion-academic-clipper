@@ -217,6 +217,29 @@
     @apply size-4 fill-current;
   }
 
+  /*
+   * The database chooser, hung above the save button. Same anchoring as the
+   * notice toast, one layer higher so it wins when both are up.
+   */
+  .menu {
+    @apply border-line bg-bg rounded-card shadow-pop absolute inset-x-3 bottom-full z-20 mb-2 max-h-[248px] overflow-y-auto border p-1;
+  }
+  .menu-item {
+    @apply text-fg flex w-full cursor-pointer items-center gap-2 rounded-[7px] border-0 bg-transparent px-2.5 py-2 text-left text-[13px];
+  }
+  .menu-item:hover:not(:disabled) {
+    @apply bg-surface;
+  }
+  .menu-item:disabled {
+    @apply cursor-default opacity-60;
+  }
+  .menu-item[aria-checked='true'] {
+    @apply text-accent bg-accent-soft font-medium;
+  }
+  .menu-sep {
+    @apply border-line my-1 border-t;
+  }
+
   /* Options page ---------------------------------------------------- */
   .card {
     @apply bg-bg border-line rounded-card mb-4 border px-6 py-5;
@@ -245,19 +268,4 @@
   .cell {
     @apply border-line border-b p-2 text-left;
   }
-}
-
-/*
- * Spinner for the "reload databases" button. The keyframes are declared here
- * rather than relying on Tailwind's, which are only emitted when `animate-spin`
- * itself appears in the markup.
- */
-@keyframes clipper-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@utility spin {
-  animation: clipper-spin 0.8s linear infinite;
 }
