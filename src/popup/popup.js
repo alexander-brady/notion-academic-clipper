@@ -231,6 +231,7 @@ async function loadBibtex() {
     setValue('authors', (e.authors || []).join(', '));
     setValue('journal', e.journal || '');
     setValue('year', e.year || '');
+    if (state.meta && e.abstract) state.meta.abstract = e.abstract;
     renderDetailsHint();
 
     $('bibtex-source').textContent = res.source;

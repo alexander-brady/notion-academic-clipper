@@ -259,14 +259,8 @@ async function bibtexFromDoi(doi) {
   return null;
 }
 
-async function bibtexFromArxiv(arxivId) {
-  const bare = String(arxivId).replace(/v\d+$/, '');
-
-  // Modern arXiv submissions have a DataCite DOI; prefer the registered record.
-  const viaDoi = await bibtexFromDoi(`10.48550/arXiv.${bare}`);
-  if (viaDoi) return { ...viaDoi, source: 'arXiv (DataCite)', doi: `10.48550/arXiv.${bare}` };
-
-  // Otherwise build the entry from the Atom feed.
+/** One paper's record from the arXiv Atom API, or null. */
+async function arxivRecord(bare) {
   try {
     const xml = await fetchText(
       `https://export.arxiv.org/api/query?id_list=${encodeURIComponent(bare)}&max_results=1`
@@ -282,27 +276,41 @@ async function bibtexFromArxiv(arxivId) {
       .map((m) => decodeEntities(m[1]).trim())
       .filter(Boolean);
 
-    const title = pick('title');
-    if (!title) return null;
-    const published = pick('published');
-    const year = (published.match(/^(\d{4})/) || [])[1] || '';
-    const primary = (entry.match(/<arxiv:primary_category[^>]*term="([^"]+)"/) || [])[1] || '';
-
-    const bibtex = buildBibtex('misc', {
-      title,
-      author: authors.map(toBibName).join(' and '),
-      year,
-      eprint: bare,
-      archiveprefix: 'arXiv',
-      primaryclass: primary,
-      doi: `10.48550/arXiv.${bare}`,
-      url: `https://arxiv.org/abs/${bare}`,
-      abstract: pick('summary')
-    });
-    return { bibtex, source: 'arXiv API', doi: `10.48550/arXiv.${bare}` };
+    return {
+      title: pick('title'),
+      authors,
+      published: pick('published'),
+      primary: (entry.match(/<arxiv:primary_category[^>]*term="([^"]+)"/) || [])[1] || '',
+      summary: pick('summary')
+    };
   } catch {
     return null;
   }
+}
+
+async function bibtexFromArxiv(arxivId) {
+  const bare = String(arxivId).replace(/v\d+$/, '');
+
+  // Modern arXiv submissions have a DataCite DOI; prefer the registered record.
+  const viaDoi = await bibtexFromDoi(`10.48550/arXiv.${bare}`);
+  if (viaDoi) return { ...viaDoi, source: 'arXiv (DataCite)', doi: `10.48550/arXiv.${bare}` };
+
+  // Otherwise build the entry from the Atom feed.
+  const rec = await arxivRecord(bare);
+  if (!rec || !rec.title) return null;
+
+  const bibtex = buildBibtex('misc', {
+    title: rec.title,
+    author: rec.authors.map(toBibName).join(' and '),
+    year: (rec.published.match(/^(\d{4})/) || [])[1] || '',
+    eprint: bare,
+    archiveprefix: 'arXiv',
+    primaryclass: rec.primary,
+    doi: `10.48550/arXiv.${bare}`,
+    url: `https://arxiv.org/abs/${bare}`,
+    abstract: rec.summary
+  });
+  return { bibtex, source: 'arXiv API', doi: `10.48550/arXiv.${bare}` };
 }
 
 async function doiFromPmid(pmid) {
@@ -485,9 +493,21 @@ export async function resolveBibtex(meta, { rewriteKey = true } = {}) {
     bibtex = setCiteKey(bibtex, key);
   }
 
+  // The DataCite entry arXiv DOIs resolve to has no abstract, and a PDF has
+  // nothing to scrape, so an arXiv paper falls back to the arXiv API for it.
+  let abstract = meta.abstract || fields.abstract || '';
+  const arxivBare = String(
+    meta.arxivId || (doi.match(/^10\.48550\/arxiv\.(.+)$/i) || [])[1] || ''
+  ).replace(/v\d+$/, '');
+  if (!abstract && arxivBare) {
+    const rec = await arxivRecord(arxivBare);
+    abstract = (rec && rec.summary) || '';
+  }
+
   return {
     bibtex: bibtex.trim(),
     doi,
+    abstract,
     source,
     parsed: parseBibtex(bibtex)
   };

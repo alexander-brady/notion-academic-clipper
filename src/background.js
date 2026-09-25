@@ -163,7 +163,7 @@ async function clipForQuote({ token, prefs, maps, database, meta }) {
     authors: bibAuthors.length ? bibAuthors : meta.authors || [],
     year: Number(fields.year) || meta.year || '',
     journal: fields.journal || fields.booktitle || meta.journal || '',
-    abstract: meta.abstract || '',
+    abstract: (bib && bib.abstract) || meta.abstract || '',
     pdf: meta.pdfUrl || '',
     entryType: parsed.type || '',
     citeKey: parsed.key || '',
@@ -350,7 +350,8 @@ const handlers = {
         volume: fields.volume || meta.volume,
         issue: fields.number || meta.issue,
         pages: fields.pages || meta.pages,
-        publisher: fields.publisher || meta.publisher
+        publisher: fields.publisher || meta.publisher,
+        abstract: result.abstract
       }
     };
   },
